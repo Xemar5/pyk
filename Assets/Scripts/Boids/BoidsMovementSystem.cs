@@ -7,8 +7,12 @@ using Unity.Transforms;
 using UnityEngine;
 using static Unity.Mathematics.math;
 
+[UpdateAfter(typeof(BoidsMovementSystem))]
 public class BoidsMovementSystem : JobComponentSystem
 {
+    private EntityQuery boidsQuery;
+
+
     // This declares a new kind of job, which is a unit of work to do.
     // The job is declared as an IJobForEach<Translation, Rotation>,
     // meaning it will process all entities in the world that have both
@@ -17,45 +21,110 @@ public class BoidsMovementSystem : JobComponentSystem
     //
     // The job is also tagged with the BurstCompile attribute, which means
     // that the Burst compiler will optimize it for the best performance.
+
     [BurstCompile]
-    struct BoidsMovementSystemJob : IJobForEach<Translation, Rotation, BoidData>
+    struct GetTranslationsJob : IJobForEachWithEntity<Translation>
     {
-        internal float deltaTime;
+        public NativeArray<float3> positions;
 
-        //internal float deltaTime;
+        public void Execute(Entity entity, int index, [ReadOnly] ref Translation translation)
+        {
+            positions[index] = translation.Value;
+        }
+    }
 
-        // Add fields here that your job needs to do its work.
-        // For example,
-        //    public float deltaTime;
 
+    [BurstCompile]
+    struct GetRotationsJob : IJobForEachWithEntity<Rotation>
+    {
+        public NativeArray<quaternion> rotations;
 
+        public void Execute(Entity entity, int index, [ReadOnly] ref Rotation translation)
+        {
+            rotations[index] = translation.Value;
+        }
+    }
+
+    //[BurstCompile]
+    //struct GetBoidDataJob : IJobForEachWithEntity<BoidData>
+    //{
+    //    public NativeArray<quaternion> positions;
+
+    //    public void Execute(Entity entity, int index, ref BoidData boidData)
+    //    {
+    //        positions[index] = boidData.acceleration;
+    //    }
+    //}
+
+    [BurstCompile]
+    struct MoveBoidsJob : IJobForEach<Translation, Rotation, BoidData>
+    {
+        public float deltaTime;
+        public NativeArray<float3> translations;
+        public NativeArray<quaternion> rotations;
 
         public void Execute(ref Translation translation, [ReadOnly] ref Rotation rotation, [ReadOnly] ref BoidData boidData)
         {
-            // Implement the work to perform for each entity here.
-            // You should only access data that is local or that is a
-            // field on this job. Note that the 'rotation' parameter is
-            // marked as [ReadOnly], which means it cannot be modified,
-            // but allows this job to run in parallel with other jobs
-            // that want to read Rotation component data.
-            // For example,
-            translation.Value += mul(rotation.Value, new float3(0, 0, 1)) * boidData.movementSpeed * deltaTime;
-            
+
+            translation.Value = mul(rotation.Value, float3(0, 0, 1)) * deltaTime * boidData.movementSpeed;
         }
     }
-    
+
+
+
+
+    protected override void OnCreate()
+    {
+        boidsQuery = GetEntityQuery(new EntityQueryDesc
+        {
+            All = new[]
+            {
+                ComponentType.ReadWrite<BoidData>(),
+                ComponentType.ReadOnly<Translation>(),
+                ComponentType.ReadOnly<Rotation>(),
+            }
+        });
+    }
+
     protected override JobHandle OnUpdate(JobHandle inputDependencies)
     {
-        var job = new BoidsMovementSystemJob();
-        
         // Assign values to the fields on your job here, so that it has
         // everything it needs to do its work when it runs later.
         // For example,
-        job.deltaTime = UnityEngine.Time.deltaTime;
-        
-        
-        
-        // Now that the job is set up, schedule it to be run. 
-        return job.Schedule(this, inputDependencies);
+
+        int boidCount = boidsQuery.CalculateEntityCount();
+
+        if (boidCount == 0)
+        {
+            // No boids found
+            return inputDependencies;
+        }
+
+        NativeArray<float3> translationsArray = new NativeArray<float3>(boidCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+        NativeArray<quaternion> rotationsArray = new NativeArray<quaternion>(boidCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+
+        JobHandle translationsJobHandle = new GetTranslationsJob()
+        {
+            positions = translationsArray
+        }.Schedule(boidsQuery, inputDependencies);
+
+        JobHandle rotationsJobHandle = new GetRotationsJob()
+        {
+            rotations = rotationsArray
+        }.Schedule(boidsQuery, inputDependencies);
+
+
+        JobHandle combineHandle = JobHandle.CombineDependencies(translationsJobHandle, rotationsJobHandle);
+
+
+        JobHandle movementJobHandle = new MoveBoidsJob()
+        {
+            translations = translationsArray,
+            rotations = rotationsArray,
+            deltaTime = Time.deltaTime,
+        }.Schedule(boidsQuery, combineHandle);
+
+
+        return movementJobHandle;
     }
 }
