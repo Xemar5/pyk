@@ -29,7 +29,11 @@ public class MawletSpawnerMono : MonoBehaviour
     [ContextMenu("Spawn Mawlet")]
     private void SpawnMawlet()
     {
-        SpawnMawlets(1, new float3(0, 0, 0), mawletPrefab);
+        for(int i= 0; i< 10; i++)
+        {
+            SpawnMawlets(1, new float3(UnityEngine.Random.Range(-20,20), 0, UnityEngine.Random.Range(-20, 20)), mawletPrefab);
+        }
+
     }
 
 
@@ -40,6 +44,7 @@ public class MawletSpawnerMono : MonoBehaviour
         {
             Entity entity = entityManager.Instantiate(convertedPrefab);
             entityManager.SetComponentData(entity, new Translation { Value = translation });
+            entityManager.SetComponentData(entity, new Rotation { Value = Quaternion.identity });
         }
     }
 
