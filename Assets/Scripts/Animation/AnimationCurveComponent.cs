@@ -4,9 +4,13 @@ using Unity.Entities;
 using Unity.Mathematics;
 
 [Serializable]
-public struct AnimationCurveComponent : IComponentData
+public struct AnimationCurveTranslation : IComponentData
 {
 
-    public AnimationCurveExtention.AnimationCurveSampled curve;
-    
+    public BlobAssetReference<AnimationCurveBlob> xCurve;
+    public BlobAssetReference<AnimationCurveBlob> yCurve;
+    public BlobAssetReference<AnimationCurveBlob> zCurve;
+    public int frameDelay;
+    public float fps;
+
 }

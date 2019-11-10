@@ -6,22 +6,25 @@ using UnityEngine;
 [RequiresEntityConversion]
 public class AnimationCurveAuthoring : MonoBehaviour, IConvertGameObjectToEntity
 {
-    public AnimationCurve curve;
-    
-    
+    [SerializeField]
+    private AnimationCurve xCurve = new AnimationCurve(new Keyframe(0, 0), new Keyframe(1, 0));
+    [SerializeField]
+    private AnimationCurve yCurve = new AnimationCurve(new Keyframe(0, 0), new Keyframe(1, 0));
+    [SerializeField]
+    private AnimationCurve zCurve = new AnimationCurve(new Keyframe(0, 0), new Keyframe(1, 0));
+    [SerializeField]
+    private float fps = 60;
+
 
     public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
     {
-        // Call methods on 'dstManager' to create runtime components on 'entity' here. Remember that:
-        //
-        // * You can add more than one component to the entity. It's also OK to not add any at all.
-        //
-        // * If you want to create more than one entity from the data in this class, use the 'conversionSystem'
-        //   to do it, instead of adding entities through 'dstManager' directly.
-        //
-        // For example,
-        //   dstManager.AddComponentData(entity, new Unity.Transforms.Scale { Value = scale });
-        dstManager.AddComponentData(entity, new AnimationCurveComponent { curve = curve.PresampleCurveToArray(60) });
-        
+        dstManager.AddComponentData(entity, new AnimationCurveTranslation
+        {
+            xCurve = xCurve.PresampleCurveToArray(fps),
+            yCurve = yCurve.PresampleCurveToArray(fps),
+            zCurve = zCurve.PresampleCurveToArray(fps),
+            frameDelay = -1,
+            fps = fps,
+        });
     }
 }

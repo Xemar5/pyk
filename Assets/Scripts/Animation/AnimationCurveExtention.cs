@@ -1,28 +1,26 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
 
 public static class AnimationCurveExtention
 {
-    public struct AnimationCurveSampled
-    {
-        public BlobArray<float> samples;
-    }
 
-    public static AnimationCurveSampled PresampleCurveToArray(this AnimationCurve animationCurve, int resolution)
+    public static BlobAssetReference<AnimationCurveBlob> PresampleCurveToArray(this AnimationCurve animationCurve, float fps)
     {
-        using (BlobBuilder builder = new BlobBuilder(Unity.Collections.Allocator.Temp))
+        using (BlobBuilder builder = new BlobBuilder(Allocator.Temp))
         {
-            ref AnimationCurveSampled blobArray = ref builder.ConstructRoot<AnimationCurveSampled>();
-            builder.Allocate(ref blobArray.samples, resolution);
+            float duration = animationCurve.keys[animationCurve.length - 1].time;
+            int resolution = (int)(fps * duration);
+            ref AnimationCurveBlob blobArray = ref builder.ConstructRoot<AnimationCurveBlob>();
+            BlobBuilderArray<float> array = builder.Allocate(ref blobArray.samples, resolution);
             for (int i = 0; i < resolution; i++)
             {
-                blobArray.samples[i] = animationCurve.Evaluate(i / (resolution - 1));
+                array[i] = animationCurve.Evaluate((float)i / (float)(resolution - 1) * duration);
             }
-            //BlobAssetReference<AnimationCurveSampled> reference = builder.CreateBlobAssetReference<AnimationCurveSampled>(Unity.Collections.Allocator.Persistent);
-            return blobArray;
+            return builder.CreateBlobAssetReference<AnimationCurveBlob>(Allocator.Persistent);
         }
     }
 }

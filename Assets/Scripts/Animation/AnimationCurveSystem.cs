@@ -17,20 +17,41 @@ public class AnimationCurveSystem : JobComponentSystem
     // The job is also tagged with the BurstCompile attribute, which means
     // that the Burst compiler will optimize it for the best performance.
     [BurstCompile]
-    struct AnimationCurveSystemJob : IJobForEach<Translation, AnimationCurveComponent>
+    struct AnimationCurveSystemJob : IJobForEach<Translation, AnimationCurveTranslation>
     {
-        public int frame;
+        [ReadOnly] public float time;
         
-        public void Execute(ref Translation translation, [ReadOnly] ref AnimationCurveComponent curve)
+        public void Execute(ref Translation translation, ref AnimationCurveTranslation curve)
         {
-            translation.Value += translation.Value * curve.curve.samples[frame % curve.curve.samples.Length];
+            float3 newTranslation = float3.zero;
+            int frame = (int)(time * curve.fps);
+            if (curve.frameDelay == -1)
+            {
+                curve.frameDelay = frame;
+            }
+
+            if (curve.xCurve.Value.samples.Length > 0)
+            {
+                newTranslation.x = curve.xCurve.Value.samples[(frame - curve.frameDelay) % curve.xCurve.Value.samples.Length];
+            }                                                       
+            if (curve.yCurve.Value.samples.Length > 0)              
+            {                                                       
+                newTranslation.y = curve.yCurve.Value.samples[(frame - curve.frameDelay) % curve.yCurve.Value.samples.Length];
+            }                                                       
+            if (curve.zCurve.Value.samples.Length > 0)              
+            {                                                       
+                newTranslation.z = curve.zCurve.Value.samples[(frame - curve.frameDelay) % curve.zCurve.Value.samples.Length];
+            }
+            translation.Value = newTranslation;
         }
     }
     
     protected override JobHandle OnUpdate(JobHandle inputDependencies)
     {
-        var job = new AnimationCurveSystemJob();
-        job.frame = (int)(Time.time * 60);
+        var job = new AnimationCurveSystemJob
+        {
+            time = Time.time,
+        };
         return job.Schedule(this, inputDependencies);
     }
 }
