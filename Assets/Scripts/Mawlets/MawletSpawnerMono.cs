@@ -40,6 +40,7 @@ public class MawletSpawnerMono : MonoBehaviour
         {
             Entity entity = entityManager.Instantiate(convertedPrefab);
             entityManager.SetComponentData(entity, new Translation { Value = translation });
+            entityManager.SetComponentData(entity, new Rotation { Value = Quaternion.identity });
         }
     }
 
