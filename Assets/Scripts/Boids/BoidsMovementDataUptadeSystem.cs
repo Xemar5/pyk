@@ -7,8 +7,8 @@ using Unity.Transforms;
 using UnityEngine;
 using static Unity.Mathematics.math;
 
-[UpdateAfter(typeof(BoidsMovementSystem))]
-public class BoidsMovementSystem : JobComponentSystem
+//[UpdateAfter(typeof(BoidsMovementSystem))]
+public class BoidsMovementDataUptadeSystem : JobComponentSystem
 {
     private EntityQuery boidsQuery;
 
@@ -57,16 +57,34 @@ public class BoidsMovementSystem : JobComponentSystem
     //}
 
     [BurstCompile]
-    struct MoveBoidsJob : IJobForEach<Translation, Rotation, BoidData>
+    struct UpdateBoidsDataJob : IJobForEachWithEntity<Translation, Rotation, BoidData>
     {
-        public float deltaTime;
-        [DeallocateOnJobCompletion] public NativeArray<float3> translations;
-        [DeallocateOnJobCompletion] public NativeArray<quaternion> rotations;
+        [DeallocateOnJobCompletion,ReadOnly] public NativeArray<float3> translations;
+        [DeallocateOnJobCompletion,ReadOnly] public NativeArray<quaternion> rotations;
 
-        public void Execute(ref Translation translation, [ReadOnly] ref Rotation rotation, [ReadOnly] ref BoidData boidData)
+        public void Execute(Entity entity, int index, [ReadOnly] ref Translation translation, [ReadOnly] ref Rotation rotation, ref BoidData boidData)
         {
 
-            translation.Value += mul(rotation.Value, float3(0, 0, 1)) * deltaTime * boidData.movementSpeed;
+            boidData.numFlockmates = 0;
+            //translation.Value += mul(rotation.Value, float3(0, 0, 1)) * deltaTime * boidData.movementSpeed;
+            for (int i = 0; i< translations.Length; i++)
+            {
+                if (i != index)
+                {
+                    float3 offset = translations[i] - translation.Value;
+                    float sqrDst = offset.x * offset.x + offset.y * offset.y + offset.z * offset.z;
+                    if (sqrDst < boidData.viewRadius * boidData.viewRadius)
+                    {
+                        boidData.numFlockmates += 1;
+                        boidData.flockHeading += mul(rotations[i], float3(0, 0, 1)); //check if it's working
+                        boidData.flockCentre += translations[i];
+                        if (sqrDst < boidData.avoidRadius * boidData.avoidRadius)
+                        {
+                            boidData.avoidanceHeading -= offset/sqrDst;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -117,11 +135,11 @@ public class BoidsMovementSystem : JobComponentSystem
         JobHandle combineHandle = JobHandle.CombineDependencies(translationsJobHandle, rotationsJobHandle);
 
 
-        JobHandle movementJobHandle = new MoveBoidsJob()
+        JobHandle movementJobHandle = new UpdateBoidsDataJob()
         {
             translations = translationsArray,
             rotations = rotationsArray,
-            deltaTime = Time.deltaTime,
+            //deltaTime = Time.deltaTime,
         }.Schedule(boidsQuery, combineHandle);
 
         

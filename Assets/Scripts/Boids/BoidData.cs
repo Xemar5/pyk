@@ -21,8 +21,13 @@ public struct BoidData : IComponentData
     //   authoring the data in the Editor.
 
     public float movementSpeed;
-    public float acceleration;
-    public float velocity;
+    public float maxSpeed;
+    public float maxSteerForce;
     public float viewRadius;
     public float avoidRadius;
+    public int numFlockmates;
+    public float3 velocity;
+    public float3 flockHeading;
+    public float3 flockCentre;
+    public float3 avoidanceHeading;
 }

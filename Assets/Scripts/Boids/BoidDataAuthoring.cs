@@ -17,7 +17,7 @@ public class BoidDataAuthoring : MonoBehaviour, IConvertGameObjectToEntity
     // For example,
     //    public float scale;
     [SerializeField]
-    float movementSpeed,viewRadius,avoidRadius;
+    float movementSpeed,viewRadius,avoidRadius, maxSpeed, maxSteerForce;
 
     public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
     {
@@ -29,7 +29,14 @@ public class BoidDataAuthoring : MonoBehaviour, IConvertGameObjectToEntity
         //   to do it, instead of adding entities through 'dstManager' directly.
         //
         // For example,
-        dstManager.AddComponentData(entity, new BoidData { movementSpeed = movementSpeed , viewRadius = viewRadius, avoidRadius = avoidRadius});
+        dstManager.AddComponentData(entity, new BoidData { 
+            movementSpeed = movementSpeed , 
+            viewRadius = viewRadius, 
+            avoidRadius = avoidRadius,
+            maxSpeed = maxSpeed,
+            maxSteerForce = maxSteerForce,
+            velocity = new float3(UnityEngine.Random.Range(-1,1),0,UnityEngine.Random.Range(-1,1))
+        });
         
         
     }

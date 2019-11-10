@@ -152,3 +152,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   movementSpeed: 10
+  viewRadius: 5
+  avoidRadius: 1
+  maxSpeed: 5
+  maxSteerForce: 10
