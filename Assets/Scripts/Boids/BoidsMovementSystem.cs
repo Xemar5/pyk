@@ -60,13 +60,13 @@ public class BoidsMovementSystem : JobComponentSystem
     struct MoveBoidsJob : IJobForEach<Translation, Rotation, BoidData>
     {
         public float deltaTime;
-        public NativeArray<float3> translations;
-        public NativeArray<quaternion> rotations;
+        [DeallocateOnJobCompletion] public NativeArray<float3> translations;
+        [DeallocateOnJobCompletion] public NativeArray<quaternion> rotations;
 
         public void Execute(ref Translation translation, [ReadOnly] ref Rotation rotation, [ReadOnly] ref BoidData boidData)
         {
 
-            translation.Value = mul(rotation.Value, float3(0, 0, 1)) * deltaTime * boidData.movementSpeed;
+            translation.Value += mul(rotation.Value, float3(0, 0, 1)) * deltaTime * boidData.movementSpeed;
         }
     }
 
@@ -124,6 +124,7 @@ public class BoidsMovementSystem : JobComponentSystem
             deltaTime = Time.deltaTime,
         }.Schedule(boidsQuery, combineHandle);
 
+        
 
         return movementJobHandle;
     }
