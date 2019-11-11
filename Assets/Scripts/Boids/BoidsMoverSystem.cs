@@ -23,6 +23,7 @@ public class BoidsMoverSystem : JobComponentSystem
     struct MoveBoidJob : IJobForEach<BoidData, Rotation, Translation>
     {
         [ReadOnly] public float deltaTime;
+        [ReadOnly] public BoidsSettings boidsSettings;
         public void Execute(ref BoidData boidData, ref Rotation rotation, ref Translation translation)
         {
             float3 acceleration = new float3(0, 0, 0);
@@ -38,9 +39,9 @@ public class BoidsMoverSystem : JobComponentSystem
                 float3 cohesionForce = SteerTowards(offsetToFlockmatesCentre, boidData);
                 float3 separationForce = SteerTowards(boidData.avoidanceHeading, boidData);
 
-                acceleration += alignmentForce * boidData.alignWeight;
-                acceleration += cohesionForce * boidData.cohesionWeight;
-                acceleration += separationForce * boidData.separationWeight;
+                acceleration += alignmentForce * boidsSettings.alignWeight;
+                acceleration += cohesionForce * boidsSettings.cohesionWeight;
+                acceleration += separationForce * boidsSettings.separationWeight;
                 if (IsNan(acceleration))
                 {
                     acceleration = new float3(0, 0, 0);
@@ -58,7 +59,7 @@ public class BoidsMoverSystem : JobComponentSystem
             //{
             //  dir = boidData.velocity / speed;
             //}
-            speed = clamp(speed, boidData.maxSpeed / 2, boidData.maxSpeed);
+            speed = clamp(speed, boidsSettings.minSpeed, boidsSettings.maxSpeed);
             float3 dir = new float3(0, 0, 0);
             if (Magnitude(boidData.velocity)!= 0)
             {
@@ -123,9 +124,14 @@ public class BoidsMoverSystem : JobComponentSystem
 
     protected override JobHandle OnUpdate(JobHandle inputDependencies)
     {
-        var job = new MoveBoidJob()
+        MoveBoidJob job;
+        BoidsSettings boidsSettings = Resources.Load<BoidsSettingsData>("BoidSettings").settings;
+
+
+        job = new MoveBoidJob()
         {
             deltaTime = Time.deltaTime,
+            boidsSettings = boidsSettings
         };
 
         // Assign values to the fields on your job here, so that it has
