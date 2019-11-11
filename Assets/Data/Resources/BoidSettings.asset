@@ -12,12 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f975411e7b793343ab55df97bcef8a4, type: 3}
   m_Name: BoidSettings
   m_EditorClassIdentifier: 
-  maxSpeed: 0
-  minSpeed: 0
-  maxSteerForce: 0
-  viewRadius: 0
-  avoidRadius: 0
-  alignWeight: 0
-  separationWeight: 0
-  cohesionWeight: 0
-  targetWeight: 0
+  settings:
+    maxSpeed: 44.5
+    minSpeed: 16.6
+    maxSteerForce: 0.5
+    viewRadius: 6.28
+    avoidRadius: 2.91
+    alignWeight: 2.03
+    separationWeight: 7.05
+    cohesionWeight: 2.35
+    targetWeight: 2.94

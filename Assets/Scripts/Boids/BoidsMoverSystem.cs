@@ -24,9 +24,20 @@ public class BoidsMoverSystem : JobComponentSystem
     {
         [ReadOnly] public float deltaTime;
         [ReadOnly] public BoidsSettings boidsSettings;
+        [ReadOnly] public float3 targetPos;
         public void Execute(ref BoidData boidData, ref Rotation rotation, ref Translation translation)
         {
             float3 acceleration = new float3(0, 0, 0);
+
+            if (!IsNan(targetPos))
+            {
+                float3 offsetToTarget = targetPos - translation.Value;
+                acceleration = SteerTowards(offsetToTarget, boidData) * boidsSettings.targetWeight;
+                if (IsNan(acceleration))
+                {
+                    acceleration = new float3(0, 0, 0);
+                }
+            }
 
             //TODO:code for target
 
@@ -128,10 +139,18 @@ public class BoidsMoverSystem : JobComponentSystem
         BoidsSettings boidsSettings = Resources.Load<BoidsSettingsData>("BoidSettings").settings;
 
 
+        float3 targetPos = new float3(float.NaN, float.NaN, float.NaN);
+
+        if (PlayerInput.Singleton && PlayerInput.Singleton.IsPositionHit)
+        {
+            targetPos = PlayerInput.Singleton.MouseHitPosition;
+        }
+
         job = new MoveBoidJob()
         {
             deltaTime = Time.deltaTime,
-            boidsSettings = boidsSettings
+            boidsSettings = boidsSettings,
+            targetPos = targetPos
         };
 
         // Assign values to the fields on your job here, so that it has
