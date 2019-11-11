@@ -1,6 +1,7 @@
 ﻿using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
+using static Unity.Mathematics.math;
 
 [DisallowMultipleComponent]
 [RequiresEntityConversion]
@@ -17,7 +18,7 @@ public class BoidDataAuthoring : MonoBehaviour, IConvertGameObjectToEntity
     // For example,
     //    public float scale;
     [SerializeField]
-    float movementSpeed,viewRadius,avoidRadius, maxSpeed, maxSteerForce;
+    float movementSpeed,viewRadius,avoidRadius, maxSpeed, maxSteerForce, separationWeight, cohesionWeight, alignWeight;
 
     public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
     {
@@ -35,7 +36,10 @@ public class BoidDataAuthoring : MonoBehaviour, IConvertGameObjectToEntity
             avoidRadius = avoidRadius,
             maxSpeed = maxSpeed,
             maxSteerForce = maxSteerForce,
-            velocity = new float3(UnityEngine.Random.Range(-1,1),0,UnityEngine.Random.Range(-1,1))
+            cohesionWeight = cohesionWeight,
+            alignWeight = alignWeight,
+            separationWeight = separationWeight,
+            velocity = normalize(new float3(UnityEngine.Random.Range(-1,1),0,UnityEngine.Random.Range(-1,1)))*maxSpeed
         });
         
         

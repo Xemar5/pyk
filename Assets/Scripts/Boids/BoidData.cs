@@ -25,6 +25,9 @@ public struct BoidData : IComponentData
     public float maxSteerForce;
     public float viewRadius;
     public float avoidRadius;
+    public float alignWeight;
+    public float separationWeight;
+    public float cohesionWeight;
     public int numFlockmates;
     public float3 velocity;
     public float3 flockHeading;
