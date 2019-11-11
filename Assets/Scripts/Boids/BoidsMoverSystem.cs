@@ -79,21 +79,21 @@ public class BoidsMoverSystem : JobComponentSystem
             }
 
             translation.Value += boidData.velocity * deltaTime;
-            if (translation.Value.x > 20)
+            if (translation.Value.x > 70)
             {
-                translation.Value.x = -20;
+                translation.Value.x = -70;
             }
-            else if (translation.Value.x < -20)
+            else if (translation.Value.x < -70)
             {
-                translation.Value.x = 20;
+                translation.Value.x = 70;
             }
-            if (translation.Value.z > 20)
+            if (translation.Value.z > 70)
             {
-                translation.Value.z = -20;
+                translation.Value.z = -70;
             }
-            else if (translation.Value.z < -20)
+            else if (translation.Value.z < -70)
             {
-                translation.Value.z = 20;
+                translation.Value.z = 70;
             }
 
 

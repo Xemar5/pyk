@@ -138,10 +138,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   movementSpeed: 10
-  viewRadius: 4.98
-  avoidRadius: 3
-  maxSpeed: 10
-  maxSteerForce: 1
-  separationWeight: 2
-  cohesionWeight: 2
-  alignWeight: 1
+  viewRadius: 6.28
+  avoidRadius: 2.91
+  maxSpeed: 20
+  maxSteerForce: 0.5
+  separationWeight: 3.44
+  cohesionWeight: 1.78
+  alignWeight: 2.03

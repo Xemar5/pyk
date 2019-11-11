@@ -29,7 +29,7 @@ public class MawletSpawnerMono : MonoBehaviour
     [ContextMenu("Spawn Mawlet")]
     private void SpawnMawlet()
     {
-        for(int i= 0; i< 1; i++)
+        for(int i= 0; i< 100; i++)
         {
             SpawnMawlets(1, new float3(UnityEngine.Random.Range(-20,20), 0, UnityEngine.Random.Range(-20, 20)), mawletPrefab);
         }
