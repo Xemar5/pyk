@@ -63,9 +63,12 @@ public class BoidsMovementDataUptadeSystem : JobComponentSystem
         [DeallocateOnJobCompletion,ReadOnly] public NativeArray<quaternion> rotations;
 
         public void Execute(Entity entity, int index, [ReadOnly] ref Translation translation, [ReadOnly] ref Rotation rotation, ref BoidData boidData)
-        {
+         {
 
             boidData.numFlockmates = 0;
+            boidData.flockHeading = new float3(0, 0, 0);
+            boidData.flockCentre = new float3(0, 0, 0);
+            boidData.avoidanceHeading = new float3(0, 0, 0);
             //translation.Value += mul(rotation.Value, float3(0, 0, 1)) * deltaTime * boidData.movementSpeed;
             for (int i = 0; i< translations.Length; i++)
             {
@@ -76,15 +79,19 @@ public class BoidsMovementDataUptadeSystem : JobComponentSystem
                     if (sqrDst < boidData.viewRadius * boidData.viewRadius)
                     {
                         boidData.numFlockmates += 1;
-                        boidData.flockHeading += mul(rotations[i], float3(0, 0, 1)); //check if it's working
+                        boidData.flockHeading += mul(rotations[i], new float3(0, 0, 1)); //check if it's working
                         boidData.flockCentre += translations[i];
                         if (sqrDst < boidData.avoidRadius * boidData.avoidRadius)
                         {
-                            boidData.avoidanceHeading -= offset/sqrDst;
+                            if (sqrDst != 0)
+                            {
+                                boidData.avoidanceHeading -= offset / sqrDst;
+                            }
                         }
                     }
                 }
             }
+           // boidData.avoidanceHeading = boidData.avoidanceHeading;
         }
     }
 
