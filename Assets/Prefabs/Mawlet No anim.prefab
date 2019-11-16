@@ -140,8 +140,8 @@ MonoBehaviour:
   movementSpeed: 10
   viewRadius: 6.28
   avoidRadius: 2.91
-  maxSpeed: 20
-  maxSteerForce: 0.5
+  maxSpeed: 40
+  maxSteerForce: 0.1
   separationWeight: 3.44
   cohesionWeight: 1.78
   alignWeight: 2.03

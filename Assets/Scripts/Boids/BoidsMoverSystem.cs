@@ -30,14 +30,10 @@ public class BoidsMoverSystem : JobComponentSystem
         {
             float3 acceleration = new float3(0, 0, 0);
 
-            if (!IsNan(targetPos))
+            if (IsNan(targetPos) == false)
             {
                 float3 offsetToTarget = targetPos - translation.Value;
                 acceleration = SteerTowards(offsetToTarget, boidData) * boidsSettings.targetWeight;
-                if (IsNan(acceleration))
-                {
-                    acceleration = new float3(0, 0, 0);
-                }
             }
 
             //TODO:code for target
@@ -54,43 +50,20 @@ public class BoidsMoverSystem : JobComponentSystem
                 acceleration += alignmentForce * boidsSettings.alignWeight;
                 acceleration += cohesionForce * boidsSettings.cohesionWeight;
                 acceleration += separationForce * boidsSettings.separationWeight;
-                if (IsNan(acceleration))
-                {
-                    acceleration = new float3(0, 0, 0);
-                }
             }
 
 
             //TODO:code for collision avoidance
 
-            boidData.velocity += acceleration * deltaTime;
+            boidData.velocity += acceleration;
             boidData.velocity.y = 0;
-            float speed = Magnitude(boidData.velocity);
-            //float3 dir = new float3(0,0,0);
-            //if (speed != 0)
-            //{
-            //  dir = boidData.velocity / speed;
-            //}
+
+            float3 dir = normalizesafe(boidData.velocity);
+            float speed = length(boidData.velocity);
             speed = clamp(speed, boidsSettings.minSpeed, boidsSettings.maxSpeed);
-            float3 dir = new float3(0, 0, 0);
-            if (Magnitude(boidData.velocity) != 0)
-            {
-                dir = normalize(boidData.velocity);
-            }
-
-
-
             boidData.velocity = dir * speed;
 
-            if (IsNan(boidData.velocity))
-            {
-                boidData.velocity = new float3(0, 0, 0);
-            }
-
-            if (dir.x != 0 || dir.y != 0 || dir.z != 0)
-            {
-                rotation.Value = Unity.Mathematics.quaternion.LookRotation(dir, new float3(0, 1, 0));
-            }
+            rotation.Value = Unity.Mathematics.quaternion.LookRotationSafe(dir, new float3(0, 1, 0));
             translation.Value += boidData.velocity * deltaTime;
         }
 
@@ -99,24 +72,19 @@ public class BoidsMoverSystem : JobComponentSystem
             return float.IsNaN(v.x) || float.IsNaN(v.y) || float.IsNaN(v.z);
         }
 
-        private float Magnitude(float3 v)
-        {
-            return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-        }
 
         private float3 SteerTowards(float3 vector, BoidData boidData)
         {
-            if (Magnitude(vector) == 0)
+            float3 maxVelocity = normalizesafe(vector) * boidData.maxSpeed;
+            float3 targetVelocity = maxVelocity - boidData.velocity;
+            if (lengthsq(targetVelocity) > lengthsq(boidData.maxSteerForce))
             {
-                return vector;
+                return normalizesafe(targetVelocity) * boidData.maxSteerForce;
             }
-
-            float3 v = normalize(vector) * boidData.maxSpeed - boidData.velocity;
-            if (Magnitude(v) > boidData.maxSpeed)
+            else
             {
-                v = normalize(v) * boidData.maxSpeed;
+                return targetVelocity;
             }
-            return v; //check if it's correct
         }
     }
 

@@ -69,14 +69,14 @@ public class BoidsPositionClampSystem : JobComponentSystem
 
             if (addUncontrolledMovementComponent == true)
             {
-                rotation.Value = quaternion.LookRotation(boidData.velocity, new float3(0, 1, 0));
+                rotation.Value = quaternion.LookRotationSafe(boidData.velocity, new float3(0, 1, 0));
                 if (componentDataFromEntity.Exists(entity) == false)
                 {
-                    commandBuffer.AddComponent(index, entity, new UncontrolledMovementComponent() { duration = 3 });
+                    commandBuffer.AddComponent(index, entity, new UncontrolledMovementComponent() { duration = 2 });
                 }
                 else
                 {
-                    commandBuffer.SetComponent(index, entity, new UncontrolledMovementComponent() { duration = 3 });
+                    commandBuffer.SetComponent(index, entity, new UncontrolledMovementComponent() { duration = 2 });
                 }
             }
 
