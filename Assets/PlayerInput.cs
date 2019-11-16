@@ -31,22 +31,18 @@ public class PlayerInput : MonoBehaviour
         if (Input.GetMouseButton(0))
         {
             Vector2 screenPos = Input.mousePosition;
-            Vector3 mouseWorldPosition = cam.ScreenToWorldPoint(screenPos);
+            Plane plane = new Plane(Vector3.up, Vector3.zero);
+            Ray ray = cam.ScreenPointToRay(screenPos);
 
-            RaycastHit hit;
-
-            Physics.Raycast(mouseWorldPosition, cam.transform.forward, out hit, 100, groundLayer);
-            
-            if(hit.collider == null)
+            if (plane.Raycast(ray, out float enter) == true)
             {
-                IsPositionHit = false;
+                IsPositionHit = true;
+                MouseHitPosition = ray.GetPoint(enter);
             }
             else
             {
-                MouseHitPosition = hit.point;
-                IsPositionHit = true;
+                IsPositionHit = false;
             }
-            
         }
         else
         {

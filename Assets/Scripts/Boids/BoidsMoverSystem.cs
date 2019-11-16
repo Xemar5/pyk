@@ -20,6 +20,7 @@ public class BoidsMoverSystem : JobComponentSystem
     // that the Burst compiler will optimize it for the best performance.
 
     [BurstCompile]
+    [ExcludeComponent(typeof(UncontrolledMovementComponent))]
     private struct MoveBoidJob : IJobForEach<BoidData, Rotation, Translation>
     {
         [ReadOnly] public float deltaTime;
@@ -119,9 +120,21 @@ public class BoidsMoverSystem : JobComponentSystem
         }
     }
 
+    [BurstCompile]
+    [RequireComponentTag(typeof(UncontrolledMovementComponent))]
+    private struct MoveBoidUncontrolledJob : IJobForEach<BoidData, Translation>
+    {
+        [ReadOnly] public float deltaTime;
+
+        public void Execute([ReadOnly] ref BoidData boidData, ref Translation translation)
+        {
+            translation.Value += boidData.velocity * deltaTime;
+        }
+    }
+
+
     protected override JobHandle OnUpdate(JobHandle inputDependencies)
     {
-        MoveBoidJob job;
         BoidsSettings boidsSettings = Resources.Load<BoidsSettingsData>("BoidSettings").settings;
 
 
@@ -132,21 +145,21 @@ public class BoidsMoverSystem : JobComponentSystem
             targetPos = PlayerInput.Singleton.MouseHitPosition;
         }
 
-        job = new MoveBoidJob()
+        float deltaTime = Time.deltaTime;
+        var moveControlledJob = new MoveBoidJob()
         {
-            deltaTime = Time.deltaTime,
+            deltaTime = deltaTime,
             boidsSettings = boidsSettings,
             targetPos = targetPos
-        };
+        }.Schedule(this, inputDependencies);
 
-        // Assign values to the fields on your job here, so that it has
-        // everything it needs to do its work when it runs later.
-        // For example,
-        //     job.deltaTime = UnityEngine.Time.deltaTime;
+        var moveUncontrolledJob = new MoveBoidUncontrolledJob()
+        {
+            deltaTime = deltaTime,
+        }.Schedule(this, moveControlledJob);
 
+        //JobHandle jobHandle = JobHandle.CombineDependencies(moveControlledJob, moveUncontrolledJob);
 
-
-        // Now that the job is set up, schedule it to be run. 
-        return job.Schedule(this, inputDependencies);
+        return moveUncontrolledJob;
     }
 }

@@ -10,7 +10,7 @@ using static Unity.Mathematics.math;
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 public class UnitSpawnerSystem : JobComponentSystem
 {
-    private BeginInitializationEntityCommandBufferSystem commandBufferSystem;
+    private BeginSimulationEntityCommandBufferSystem commandBufferSystem;
 
 
     // This declares a new kind of job, which is a unit of work to do.
@@ -46,7 +46,7 @@ public class UnitSpawnerSystem : JobComponentSystem
 
     protected override void OnCreate()
     {
-        commandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
+        commandBufferSystem = World.GetOrCreateSystem<BeginSimulationEntityCommandBufferSystem>();
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDependencies)

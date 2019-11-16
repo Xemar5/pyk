@@ -18,7 +18,21 @@ public class BoidDataAuthoring : MonoBehaviour, IConvertGameObjectToEntity
     // For example,
     //    public float scale;
     [SerializeField]
-    float movementSpeed,viewRadius,avoidRadius, maxSpeed, maxSteerForce, separationWeight, cohesionWeight, alignWeight;
+    private float movementSpeed = 0;
+    [SerializeField]
+    private float viewRadius = 0;
+    [SerializeField]
+    private float avoidRadius = 0;
+    [SerializeField]
+    private float maxSpeed = 0;
+    [SerializeField]
+    private float maxSteerForce = 0;
+    [SerializeField]
+    private float separationWeight = 0;
+    [SerializeField]
+    private float cohesionWeight = 0;
+    [SerializeField]
+    private float alignWeight = 0;
 
     public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem)
     {
@@ -30,18 +44,19 @@ public class BoidDataAuthoring : MonoBehaviour, IConvertGameObjectToEntity
         //   to do it, instead of adding entities through 'dstManager' directly.
         //
         // For example,
-        dstManager.AddComponentData(entity, new BoidData { 
-            movementSpeed = movementSpeed , 
-            viewRadius = viewRadius, 
+        dstManager.AddComponentData(entity, new BoidData
+        {
+            movementSpeed = movementSpeed,
+            viewRadius = viewRadius,
             avoidRadius = avoidRadius,
             maxSpeed = maxSpeed,
             maxSteerForce = maxSteerForce,
             cohesionWeight = cohesionWeight,
             alignWeight = alignWeight,
             separationWeight = separationWeight,
-            velocity = normalize(new float3(UnityEngine.Random.Range(-1,1),0,UnityEngine.Random.Range(-1,1)))*maxSpeed
+            velocity = normalize(new float3(UnityEngine.Random.Range(-1, 1), 0, UnityEngine.Random.Range(-1, 1))) * maxSpeed
         });
-        
-        
+
+
     }
 }
