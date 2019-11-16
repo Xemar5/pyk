@@ -20,7 +20,7 @@ public class BoidsMoverSystem : JobComponentSystem
     // that the Burst compiler will optimize it for the best performance.
 
     [BurstCompile]
-    struct MoveBoidJob : IJobForEach<BoidData, Rotation, Translation>
+    private struct MoveBoidJob : IJobForEach<BoidData, Rotation, Translation>
     {
         [ReadOnly] public float deltaTime;
         [ReadOnly] public BoidsSettings boidsSettings;
@@ -59,7 +59,7 @@ public class BoidsMoverSystem : JobComponentSystem
                 }
             }
 
-            
+
             //TODO:code for collision avoidance
 
             boidData.velocity += acceleration * deltaTime;
@@ -72,7 +72,7 @@ public class BoidsMoverSystem : JobComponentSystem
             //}
             speed = clamp(speed, boidsSettings.minSpeed, boidsSettings.maxSpeed);
             float3 dir = new float3(0, 0, 0);
-            if (Magnitude(boidData.velocity)!= 0)
+            if (Magnitude(boidData.velocity) != 0)
             {
                 dir = normalize(boidData.velocity);
             }
@@ -81,7 +81,8 @@ public class BoidsMoverSystem : JobComponentSystem
 
             boidData.velocity = dir * speed;
 
-            if (IsNan(boidData.velocity)){
+            if (IsNan(boidData.velocity))
+            {
                 boidData.velocity = new float3(0, 0, 0);
             }
 
@@ -89,41 +90,26 @@ public class BoidsMoverSystem : JobComponentSystem
             {
                 rotation.Value = Unity.Mathematics.quaternion.LookRotation(dir, new float3(0, 1, 0));
             }
-
             translation.Value += boidData.velocity * deltaTime;
-            if (translation.Value.x > 70)
-            {
-                translation.Value.x = -70;
-            }
-            else if (translation.Value.x < -70)
-            {
-                translation.Value.x = 70;
-            }
-            if (translation.Value.z > 70)
-            {
-                translation.Value.z = -70;
-            }
-            else if (translation.Value.z < -70)
-            {
-                translation.Value.z = 70;
-            }
-
-
         }
 
-        bool IsNan(float3 v)
+        private bool IsNan(float3 v)
         {
             return float.IsNaN(v.x) || float.IsNaN(v.y) || float.IsNaN(v.z);
         }
 
-        float Magnitude(float3 v)
+        private float Magnitude(float3 v)
         {
             return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
         }
 
-        float3 SteerTowards(float3 vector, BoidData boidData)
+        private float3 SteerTowards(float3 vector, BoidData boidData)
         {
-            if (Magnitude(vector) == 0) return vector;
+            if (Magnitude(vector) == 0)
+            {
+                return vector;
+            }
+
             float3 v = normalize(vector) * boidData.maxSpeed - boidData.velocity;
             if (Magnitude(v) > boidData.maxSpeed)
             {

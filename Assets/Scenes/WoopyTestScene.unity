@@ -210,7 +210,7 @@ Transform:
   m_GameObject: {fileID: 195089402}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 15, y: 1, z: 13.18}
+  m_LocalScale: {x: 12, y: 12, z: 12}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 4
@@ -399,6 +399,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1738447010}
+  - component: {fileID: 1738447011}
   - component: {fileID: 1738447009}
   m_Layer: 0
   m_Name: MawletSpawner
@@ -416,11 +417,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1738447008}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6b72420c84d088f4798a668c33e4bd07, type: 3}
+  m_Script: {fileID: 11500000, guid: ea7d7495833204790ba1d3a8755397f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mawletPrefab: {fileID: 7481029849747634160, guid: 2c2c41c2b4fea154aa022a1fa7b371c0,
-    type: 3}
+  ConversionMode: 0
 --- !u!4 &1738447010
 Transform:
   m_ObjectHideFlags: 0
@@ -435,6 +435,20 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1738447011
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1738447008}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68ee41ea60462ae4695a4f65a4b692ac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  prefab: {fileID: 7481029849747634160, guid: 2c2c41c2b4fea154aa022a1fa7b371c0, type: 3}
+  spawnCount: 100
 --- !u!1 &1774511808
 GameObject:
   m_ObjectHideFlags: 0
