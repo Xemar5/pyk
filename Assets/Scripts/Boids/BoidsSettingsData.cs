@@ -17,8 +17,10 @@ public struct BoidsSettings
     public float maxSteerForce;
     public float viewRadius;
     public float avoidRadius;
+    public float boundsRadius;
     public float alignWeight;
     public float separationWeight;
     public float cohesionWeight;
     public float targetWeight;
+    public float avoidanceWeight;
 }
