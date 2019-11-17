@@ -3,6 +3,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using Unity.Physics;
 using Unity.Transforms;
 using UnityEngine;
 using static Unity.Mathematics.math;
@@ -59,7 +60,18 @@ public class BoidsMoverSystem : JobComponentSystem
                 }
             }
 
-            
+            if (IsHeadingForColision(translation.Value, mul(rotation.Value, new float3(0, 0, 1)) * boidsSettings.avoidRadius, boidsSettings.boundsRadius))
+            {
+                float3 collisionAvoidDir = ObstacleRays(rotation, translation, boidsSettings);
+                float3 collisionAvoidForce = SteerTowards(collisionAvoidDir,boidData) * boidsSettings.avoidanceWeight;
+                acceleration += collisionAvoidForce;
+                if (IsNan(acceleration))
+                {
+                    acceleration = new float3(0,0,0);
+                }
+            }
+
+
             //TODO:code for collision avoidance
 
             boidData.velocity += acceleration * deltaTime;
@@ -72,7 +84,7 @@ public class BoidsMoverSystem : JobComponentSystem
             //}
             speed = clamp(speed, boidsSettings.minSpeed, boidsSettings.maxSpeed);
             float3 dir = new float3(0, 0, 0);
-            if (Magnitude(boidData.velocity)!= 0)
+            if (Magnitude(boidData.velocity) != 0)
             {
                 dir = normalize(boidData.velocity);
             }
@@ -81,7 +93,8 @@ public class BoidsMoverSystem : JobComponentSystem
 
             boidData.velocity = dir * speed;
 
-            if (IsNan(boidData.velocity)){
+            if (IsNan(boidData.velocity))
+            {
                 boidData.velocity = new float3(0, 0, 0);
             }
 
@@ -130,6 +143,73 @@ public class BoidsMoverSystem : JobComponentSystem
                 v = normalize(v) * boidData.maxSpeed;
             }
             return v; //check if it's correct
+        }
+
+        float3 ObstacleRays(Rotation rotation, Translation translation, BoidsSettings settings)
+        {
+            float3[] rayDirections = BoidHelper.directions;
+            for (int i = 0; i < rayDirections.Length; i++)
+            {
+                float3 dir = mul(rotation.Value, rayDirections[i]);
+                if (!IsHeadingForColision(translation.Value, translation.Value + dir * settings.avoidRadius, settings.boundsRadius))
+                {
+                    return dir;
+                }
+            }
+            return mul(rotation.Value, float3(0, 0, 1));
+        }
+
+        bool IsHeadingForColision(float3 rayFrom, float3 rayTo, float radius)
+        {
+            Entity obstacle = SphereCast(rayFrom, rayTo, radius);
+            if (obstacle == null)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        public unsafe Entity SphereCast(float3 RayFrom, float3 RayTo, float radius)
+        {
+            var physicsWorldSystem = Unity.Entities.World.Active.GetExistingSystem<Unity.Physics.Systems.BuildPhysicsWorld>();
+            var collisionWorld = physicsWorldSystem.PhysicsWorld.CollisionWorld;
+
+            var filter = new CollisionFilter()
+            {
+                BelongsTo = ~0u,
+                CollidesWith = 0b1, // obstacle layer
+                GroupIndex = 0
+            };
+
+            SphereGeometry sphereGeometry = new SphereGeometry()
+            {
+                Center = new Unity.Mathematics.float3(0, 0, 0),
+                Radius = radius,
+            };
+
+            BlobAssetReference<Unity.Physics.Collider> sphereCollider = Unity.Physics.SphereCollider.Create(sphereGeometry, filter);
+
+            ColliderCastInput input = new ColliderCastInput()
+            {
+                Collider = (Unity.Physics.Collider*)sphereCollider.GetUnsafePtr(),
+                Orientation = Unity.Mathematics.quaternion.identity,
+                Start = RayFrom,
+                End = RayTo
+            };
+
+            ColliderCastHit hit = new ColliderCastHit();
+            bool haveHit = collisionWorld.CastCollider(input, out hit);
+            if (haveHit)
+            {
+                // see hit.Position 
+                // see hit.SurfaceNormal
+                Entity e = physicsWorldSystem.PhysicsWorld.Bodies[hit.RigidBodyIndex].Entity;
+                return e;
+            }
+            return Entity.Null;
         }
     }
 
