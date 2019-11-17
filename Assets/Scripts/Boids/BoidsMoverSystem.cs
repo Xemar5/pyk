@@ -88,17 +88,6 @@ public class BoidsMoverSystem : JobComponentSystem
         }
     }
 
-    [BurstCompile]
-    [RequireComponentTag(typeof(UncontrolledMovementComponent))]
-    private struct MoveBoidUncontrolledJob : IJobForEach<BoidData, Translation>
-    {
-        [ReadOnly] public float deltaTime;
-
-        public void Execute([ReadOnly] ref BoidData boidData, ref Translation translation)
-        {
-            translation.Value += boidData.velocity * deltaTime;
-        }
-    }
 
 
     protected override JobHandle OnUpdate(JobHandle inputDependencies)
@@ -121,13 +110,7 @@ public class BoidsMoverSystem : JobComponentSystem
             targetPos = targetPos
         }.Schedule(this, inputDependencies);
 
-        var moveUncontrolledJob = new MoveBoidUncontrolledJob()
-        {
-            deltaTime = deltaTime,
-        }.Schedule(this, moveControlledJob);
 
-        //JobHandle jobHandle = JobHandle.CombineDependencies(moveControlledJob, moveUncontrolledJob);
-
-        return moveUncontrolledJob;
+        return moveControlledJob;
     }
 }

@@ -7,8 +7,12 @@ using Unity.Mathematics;
 public struct UnitSpawnerComponent : IComponentData
 {
 
-    public Entity prefab;
+    public Entity headPrefab;
+    public Entity tailPrefab;
+    public int tailLength;
+    public float3 tailOffset;
+
     public int spawnCount;
     public float3 translation;
-    
+    public quaternion rotation;
 }

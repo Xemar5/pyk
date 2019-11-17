@@ -5,7 +5,6 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
-using static Unity.Mathematics.math;
 
 [UpdateInGroup(typeof(SimulationSystemGroup))]
 public class UnitSpawnerSystem : JobComponentSystem
@@ -32,12 +31,45 @@ public class UnitSpawnerSystem : JobComponentSystem
         {
             for (int i = 0; i < unitSpawn.spawnCount; i++)
             {
-                Entity newEntity = commandBuffer.Instantiate(index, unitSpawn.prefab);
+                Entity head = commandBuffer.Instantiate(index, unitSpawn.headPrefab);
                 Translation translation = new Translation()
                 {
-                    Value = unitSpawn.translation + float3(random.NextFloat(-20, 20), 0, random.NextFloat(-20, 20)),
+                    Value = unitSpawn.translation + math.float3(random.NextFloat(-20, 20), 0, random.NextFloat(-20, 20)),
                 };
-                commandBuffer.SetComponent(index, newEntity, translation);
+                Rotation rotation = new Rotation()
+                {
+                    Value = math.mul(unitSpawn.rotation, quaternion.Euler(0, random.NextFloat(0, math.PI * 2), 0)),
+                };
+                TailComponent headTail = new TailComponent()
+                {
+                    target = Entity.Null,
+                    targetOffset = float3.zero,
+                };
+                commandBuffer.SetComponent(index, head, translation);
+                commandBuffer.SetComponent(index, head, rotation);
+                commandBuffer.AddComponent(index, head, headTail);
+                for (int j = 0; j < unitSpawn.tailLength; j++)
+                {
+                    Entity tail = commandBuffer.Instantiate(index, unitSpawn.tailPrefab);
+                    TailComponent tailComponent = new TailComponent()
+                    {
+                        target = head,
+                        targetOffset = unitSpawn.tailOffset,
+                    };
+                    Translation tailTranslation = new Translation()
+                    {
+                        Value = translation.Value + math.mul(rotation.Value, unitSpawn.tailOffset),
+                    };
+                    Rotation tailRotation = new Rotation()
+                    {
+                        Value = rotation.Value,
+                    };
+                    commandBuffer.AddComponent(index, tail, tailComponent);
+                    commandBuffer.SetComponent(index, tail, tailTranslation);
+                    commandBuffer.SetComponent(index, tail, tailRotation);
+                    head = tail;
+                    translation = tailTranslation;
+                }
             }
             //unitSpawn.spawnCount = 0;
         }
