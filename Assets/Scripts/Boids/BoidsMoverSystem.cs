@@ -20,13 +20,15 @@ public class BoidsMoverSystem : JobComponentSystem
     // The job is also tagged with the BurstCompile attribute, which means
     // that the Burst compiler will optimize it for the best performance.
 
-    [BurstCompile]
+    //[BurstCompile]
     [ExcludeComponent(typeof(UncontrolledMovementComponent))]
     private struct MoveBoidJob : IJobForEach<BoidData, Rotation, Translation>
     {
         [ReadOnly] public float deltaTime;
         [ReadOnly] public BoidsSettings boidsSettings;
         [ReadOnly] public float3 targetPos;
+        [ReadOnly] public BlobAssetReference<BlobArray<float3>> rayDirections;
+
         public void Execute(ref BoidData boidData, ref Rotation rotation, ref Translation translation)
         {
             float3 acceleration = new float3(0, 0, 0);
@@ -96,10 +98,10 @@ public class BoidsMoverSystem : JobComponentSystem
 
         float3 ObstacleRays(Rotation rotation, Translation translation, BoidsSettings settings)
         {
-            float3[] rayDirections = BoidHelper.directions;
-            for (int i = 0; i < rayDirections.Length; i++)
+
+            for (int i = 0; i < rayDirections.Value.Length; i++)
             {
-                float3 dir = mul(rotation.Value, rayDirections[i]);
+                float3 dir = mul(rotation.Value, rayDirections.Value[i]);
                 if (!IsHeadingForColision(translation.Value, translation.Value + dir * settings.avoidRadius, settings.boundsRadius))
                 {
                     return dir;
@@ -181,7 +183,8 @@ public class BoidsMoverSystem : JobComponentSystem
         {
             deltaTime = deltaTime,
             boidsSettings = boidsSettings,
-            targetPos = targetPos
+            targetPos = targetPos,
+            rayDirections = BoidHelper.directions
         }.Schedule(this, inputDependencies);
 
 
