@@ -1,5 +1,6 @@
 ﻿using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -9,7 +10,7 @@ using UnityEngine;
 using static Unity.Mathematics.math;
 
 [UpdateAfter(typeof(BoidsMovementDataUptadeSystem))]
-public class BoidsMoverSystem : JobComponentSystem
+public unsafe class BoidsMoverSystem : JobComponentSystem
 {
     // This declares a new kind of job, which is a unit of work to do.
     // The job is declared as an IJobForEach<Translation, Rotation>,
@@ -19,6 +20,9 @@ public class BoidsMoverSystem : JobComponentSystem
     //
     // The job is also tagged with the BurstCompile attribute, which means
     // that the Burst compiler will optimize it for the best performance.
+    BlobAssetReference<Unity.Physics.Collider> sphereCollider;
+    BoidsSettings boidsSettings;
+
 
     //[BurstCompile]
     [ExcludeComponent(typeof(UncontrolledMovementComponent))]
@@ -28,6 +32,9 @@ public class BoidsMoverSystem : JobComponentSystem
         [ReadOnly] public BoidsSettings boidsSettings;
         [ReadOnly] public float3 targetPos;
         [ReadOnly] public BlobAssetReference<BlobArray<float3>> rayDirections;
+        [ReadOnly] public BlobAssetReference<Unity.Physics.Collider> collider;
+        [ReadOnly] public PhysicsWorld physicsWorld;
+        //public NativeList<ColliderCastHit> colliderCastHits;
 
         public void Execute(ref BoidData boidData, ref Rotation rotation, ref Translation translation)
         {
@@ -125,52 +132,50 @@ public class BoidsMoverSystem : JobComponentSystem
 
         public unsafe Entity SphereCast(float3 RayFrom, float3 RayTo, float radius)
         {
-            var physicsWorldSystem = Unity.Entities.World.Active.GetExistingSystem<Unity.Physics.Systems.BuildPhysicsWorld>();
-            var collisionWorld = physicsWorldSystem.PhysicsWorld.CollisionWorld;
-
-            var filter = new CollisionFilter()
-            {
-                BelongsTo = ~0u,
-                CollidesWith = 0b1, // obstacle layer
-                GroupIndex = 0
-            };
-
-            SphereGeometry sphereGeometry = new SphereGeometry()
-            {
-                Center = new Unity.Mathematics.float3(0, 0, 0),
-                Radius = radius,
-            };
-
-            BlobAssetReference<Unity.Physics.Collider> sphereCollider = Unity.Physics.SphereCollider.Create(sphereGeometry, filter);
+            //var physicsWorldSystem = Unity.Entities.World.Active.GetExistingSystem<Unity.Physics.Systems.BuildPhysicsWorld>();
+            //var collisionWorld = physicsWorldSystem.PhysicsWorld.CollisionWorld;
 
             ColliderCastInput input = new ColliderCastInput()
             {
-                Collider = (Unity.Physics.Collider*)sphereCollider.GetUnsafePtr(),
+                Collider = (Unity.Physics.Collider*)collider.GetUnsafePtr(),
                 Orientation = Unity.Mathematics.quaternion.identity,
                 Start = RayFrom,
                 End = RayTo
             };
 
             ColliderCastHit hit = new ColliderCastHit();
-            bool haveHit = collisionWorld.CastCollider(input, out hit);
+            bool haveHit = physicsWorld.CastCollider(input, out hit);
             if (haveHit)
             {
                 // see hit.Position 
                 // see hit.SurfaceNormal
-                Entity e = physicsWorldSystem.PhysicsWorld.Bodies[hit.RigidBodyIndex].Entity;
+                Entity e = physicsWorld.Bodies[hit.RigidBodyIndex].Entity;
                 return e;
             }
             return Entity.Null;
         }
     }
 
+    protected override void OnCreate()
+    {
+        boidsSettings = Resources.Load<BoidsSettingsData>("BoidSettings").settings;
 
+        SphereGeometry sphereGeometry = new SphereGeometry()
+        {
+            Center = new Unity.Mathematics.float3(0, 0, 0),
+            Radius = boidsSettings.boundsRadius,
+        };
+        var filter = new CollisionFilter()
+        {
+            BelongsTo = ~0u,
+            CollidesWith = 0b1, // obstacle layer
+            GroupIndex = 0
+        };
+        sphereCollider = Unity.Physics.SphereCollider.Create(sphereGeometry, filter);
+    }
 
     protected override JobHandle OnUpdate(JobHandle inputDependencies)
     {
-        BoidsSettings boidsSettings = Resources.Load<BoidsSettingsData>("BoidSettings").settings;
-
-
         float3 targetPos = new float3(float.NaN, float.NaN, float.NaN);
 
         if (PlayerInput.Singleton && PlayerInput.Singleton.IsPositionHit)
@@ -179,12 +184,14 @@ public class BoidsMoverSystem : JobComponentSystem
         }
 
         float deltaTime = Time.deltaTime;
+
         var moveControlledJob = new MoveBoidJob()
         {
             deltaTime = deltaTime,
             boidsSettings = boidsSettings,
             targetPos = targetPos,
-            rayDirections = BoidHelper.directions
+            rayDirections = BoidHelper.directions,
+            collider = sphereCollider,
         }.Schedule(this, inputDependencies);
 
 
