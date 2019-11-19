@@ -27,9 +27,9 @@ public static class BoidHelper
                 float azimuth = angleIncrement * i;
 
                 float x = math.sin(inclination) * math.cos(azimuth);
-                float y = math.sin(inclination) * math.sin(azimuth);
+                //float y = math.sin(inclination) * math.sin(azimuth);
                 float z = math.cos(inclination);
-                directions[i] = new float3(x, y, z);
+                directions[i] = new float3(x, 0, z);
             }
             BoidHelper.directions = builder.CreateBlobAssetReference<BlobArray<float3>>(Allocator.Persistent);
         }

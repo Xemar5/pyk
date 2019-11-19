@@ -25,7 +25,7 @@ public unsafe class BoidsMoverSystem : JobComponentSystem
 
 
     //[BurstCompile]
-    [ExcludeComponent(typeof(UncontrolledMovementComponent)),BurstCompile]
+    [ExcludeComponent(typeof(UncontrolledMovementComponent)), BurstCompile]
     private struct MoveBoidJob : IJobForEach<BoidData, Rotation, Translation>
     {
         [ReadOnly] public float deltaTime;
@@ -120,7 +120,7 @@ public unsafe class BoidsMoverSystem : JobComponentSystem
         bool IsHeadingForColision(float3 rayFrom, float3 rayTo, float radius)
         {
             Entity obstacle = SphereCast(rayFrom, rayTo, radius);
-            if (obstacle == null)
+            if (obstacle == Entity.Null)
             {
                 return false;
             }
