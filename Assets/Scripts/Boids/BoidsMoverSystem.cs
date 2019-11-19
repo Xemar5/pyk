@@ -25,7 +25,7 @@ public unsafe class BoidsMoverSystem : JobComponentSystem
 
 
     //[BurstCompile]
-    [ExcludeComponent(typeof(UncontrolledMovementComponent))]
+    [ExcludeComponent(typeof(UncontrolledMovementComponent)),BurstCompile]
     private struct MoveBoidJob : IJobForEach<BoidData, Rotation, Translation>
     {
         [ReadOnly] public float deltaTime;
@@ -192,6 +192,7 @@ public unsafe class BoidsMoverSystem : JobComponentSystem
             targetPos = targetPos,
             rayDirections = BoidHelper.directions,
             collider = sphereCollider,
+            physicsWorld = Unity.Entities.World.Active.GetExistingSystem<Unity.Physics.Systems.BuildPhysicsWorld>().PhysicsWorld
         }.Schedule(this, inputDependencies);
 
 

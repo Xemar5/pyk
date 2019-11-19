@@ -7,7 +7,7 @@ using UnityEngine;
 public static class BoidHelper
 {
 
-    const int numViewDirections = 1;
+    const int numViewDirections = 300;
     public static readonly BlobAssetReference<BlobArray<float3>> directions;
 
     static BoidHelper()
