@@ -23,4 +23,4 @@ MonoBehaviour:
     separationWeight: 7.05
     cohesionWeight: 2.35
     targetWeight: 2.94
-    avoidanceWeight: 1
+    avoidanceWeight: 20.12
