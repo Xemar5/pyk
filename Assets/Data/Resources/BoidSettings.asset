@@ -15,12 +15,11 @@ MonoBehaviour:
   settings:
     maxSpeed: 44.5
     minSpeed: 16.6
-    maxSteerForce: 0.5
     viewRadius: 6.28
-    avoidRadius: 2.91
-    boundsRadius: 1.5
+    avoidRadius: 7.58
+    boundsRadius: 0.85
     alignWeight: 2.03
     separationWeight: 7.05
     cohesionWeight: 2.35
-    targetWeight: 2.94
+    targetWeight: 4.61
     avoidanceWeight: 20.12

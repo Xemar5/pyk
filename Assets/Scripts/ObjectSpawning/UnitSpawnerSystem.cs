@@ -88,7 +88,7 @@ public class UnitSpawnerSystem : JobComponentSystem
             var job = new UnitSpawnerSystemJob()
             {
                 commandBuffer = commandBufferSystem.CreateCommandBuffer().ToConcurrent(),
-                random = new Unity.Mathematics.Random((uint)Mathf.RoundToInt(Time.realtimeSinceStartup * 100) + 1),
+                random = new Unity.Mathematics.Random((uint)Mathf.RoundToInt(UnityEngine.Time.realtimeSinceStartup * 100) + 1),
             }.Schedule(this, inputDependencies);
 
             commandBufferSystem.AddJobHandleForProducer(job);

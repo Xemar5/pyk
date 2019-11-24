@@ -3,9 +3,13 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using Unity.Physics;
 using Unity.Transforms;
 
-[UpdateAfter(typeof(BoidsMoverSystem))]
+//[UpdateAfter(typeof(BoidsMovementSystem))]
+[UpdateInGroup(typeof(BoidsMovementSystemGroup))]
+[UpdateAfter(typeof(BoidsMovementSystem))]
+[UpdateAfter(typeof(BoidsUncontrolledMovementSystem))]
 public class BoidsPositionClampSystem : JobComponentSystem
 {
 
@@ -20,18 +24,17 @@ public class BoidsPositionClampSystem : JobComponentSystem
     // The job is also tagged with the BurstCompile attribute, which means
     // that the Burst compiler will optimize it for the best performance.
     //[BurstCompile]
-    private struct BoidsPositionClampSystemJob : IJobForEachWithEntity<Translation, BoidData, Rotation>
+    private struct BoidsPositionClampSystemJob : IJobForEachWithEntity<Translation, PhysicsVelocity, Rotation>
     {
         // Add fields here that your job needs to do its work.
         // For example,
         public float deltaTime;
         public float maxDistance;
         public EntityCommandBuffer.Concurrent commandBuffer;
-        [ReadOnly]
-        public ComponentDataFromEntity<UncontrolledMovementComponent> componentDataFromEntity;
+        [ReadOnly] public ComponentDataFromEntity<UncontrolledMovementComponent> componentDataFromEntity;
 
 
-        public void Execute(Entity entity, int index, ref Translation translation, ref BoidData boidData, ref Rotation rotation)
+        public void Execute(Entity entity, int index, ref Translation translation, ref PhysicsVelocity velocity, ref Rotation rotation)
         {
             // Implement the work to perform for each entity here.
             // You should only access data that is local or that is a
@@ -44,32 +47,32 @@ public class BoidsPositionClampSystem : JobComponentSystem
             bool addUncontrolledMovementComponent = false;
             if (translation.Value.x > maxDistance)
             {
-                boidData.velocity.x = -boidData.velocity.x;
+                velocity.Linear.x = -velocity.Linear.x;
                 translation.Value.x = maxDistance;
                 addUncontrolledMovementComponent = true;
             }
             else if (translation.Value.x < -maxDistance)
             {
-                boidData.velocity.x = -boidData.velocity.x;
+                velocity.Linear.x = -velocity.Linear.x;
                 translation.Value.x = -maxDistance;
                 addUncontrolledMovementComponent = true;
             }
             if (translation.Value.z > maxDistance)
             {
-                boidData.velocity.z = -boidData.velocity.z;
+                velocity.Linear.z = -velocity.Linear.z;
                 translation.Value.z = maxDistance;
                 addUncontrolledMovementComponent = true;
             }
             else if (translation.Value.z < -maxDistance)
             {
-                boidData.velocity.z = -boidData.velocity.z;
+                velocity.Linear.z = -velocity.Linear.z;
                 translation.Value.z = -maxDistance;
                 addUncontrolledMovementComponent = true;
             }
 
             if (addUncontrolledMovementComponent == true)
             {
-                rotation.Value = quaternion.LookRotationSafe(boidData.velocity, new float3(0, 1, 0));
+                rotation.Value = quaternion.LookRotationSafe(velocity.Linear, new float3(0, 1, 0));
                 if (componentDataFromEntity.Exists(entity) == false)
                 {
                     commandBuffer.AddComponent(index, entity, new UncontrolledMovementComponent() { duration = 2 });
