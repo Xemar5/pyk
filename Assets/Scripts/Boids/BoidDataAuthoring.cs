@@ -54,7 +54,7 @@ public class BoidDataAuthoring : MonoBehaviour, IConvertGameObjectToEntity
             cohesionWeight = cohesionWeight,
             alignWeight = alignWeight,
             separationWeight = separationWeight,
-            velocity = normalize(new float3(UnityEngine.Random.Range(-1, 1), 0, UnityEngine.Random.Range(-1, 1))) * maxSpeed
+            //velocity = normalize(new float3(UnityEngine.Random.Range(-1, 1), 0, UnityEngine.Random.Range(-1, 1))) * maxSpeed
         });
 
 

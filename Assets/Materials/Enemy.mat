@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Mawlet
+  m_Name: Enemy
   m_Shader: {fileID: -6465566751694194690, guid: 83a42e39ec55b3742ba7f3d7fcd075fb,
     type: 3}
   m_ShaderKeywords: _ENVIRONMENTREFLECTIONS_OFF _SPECULARHIGHLIGHTS_OFF
@@ -91,7 +91,7 @@ Material:
     - _WorkflowMode: 1
     - _ZWrite: 1
     m_Colors:
-    - Color_38517025: {r: 0.83402765, g: 0.8396226, b: 0.7089266, a: 0}
+    - Color_38517025: {r: 0.9716981, g: 0.38205707, b: 0.1787558, a: 0}
     - _BaseColor: {r: 0.3301887, g: 0.3301887, b: 0.3301887, a: 1}
     - _Color: {r: 0.38972944, g: 0.48270538, b: 0.5471698, a: 1}
     - _EmissionColor: {r: 1, g: 1, b: 1, a: 1}

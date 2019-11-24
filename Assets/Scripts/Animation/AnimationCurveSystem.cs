@@ -50,7 +50,7 @@ public class AnimationCurveSystem : JobComponentSystem
     {
         var job = new AnimationCurveSystemJob
         {
-            time = Time.time,
+            time = UnityEngine.Time.time,
         };
         return job.Schedule(this, inputDependencies);
     }

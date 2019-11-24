@@ -29,8 +29,9 @@ public struct BoidData : IComponentData
     public float separationWeight;
     public float cohesionWeight;
     public int numFlockmates;
-    public float3 velocity;
+    //public float3 velocity;
     public float3 flockHeading;
     public float3 flockCentre;
     public float3 avoidanceHeading;
+    public float3 obstacleAvoidanceHeading;
 }

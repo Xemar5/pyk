@@ -14,7 +14,7 @@ public struct BoidsSettings
 {
     public float maxSpeed;
     public float minSpeed;
-    public float maxSteerForce;
+    //public float maxSteerForce;
     public float viewRadius;
     public float avoidRadius;
     public float boundsRadius;

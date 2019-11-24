@@ -7,31 +7,32 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
+using Unity.Physics;
 using Unity.Transforms;
 using UnityEngine;
 
-public class UncontrolledMovementSystem : JobComponentSystem
+[UpdateInGroup(typeof(BoidsMovementSystemGroup))]
+[UpdateAfter(typeof(BoidsMovementDataUpdateSystem))]
+public class BoidsUncontrolledMovementSystem : JobComponentSystem
 {
     private BeginInitializationEntityCommandBufferSystem commandBufferSystem;
 
-    private struct UncontrolledMovementJob : IJobForEachWithEntity<UncontrolledMovementComponent, BoidData, Translation>
+    private struct UncontrolledMovementJob : IJobForEachWithEntity<UncontrolledMovementComponent>
     {
         public EntityCommandBuffer.Concurrent commandBuffer;
         public float deltaTime;
 
-        public void Execute(Entity entity, int index, ref UncontrolledMovementComponent uncontrolledMovement, [ReadOnly] ref BoidData boidData, ref Translation translation)
+        public void Execute(Entity entity, int index, ref UncontrolledMovementComponent uncontrolledMovement)
         {
             uncontrolledMovement.duration -= deltaTime;
             if (uncontrolledMovement.duration <= 0)
             {
                 commandBuffer.RemoveComponent<UncontrolledMovementComponent>(index, entity);
             }
-            else
-            {
-                translation.Value += boidData.velocity * deltaTime;
-            }
         }
     }
+
 
 
     protected override void OnCreate()
@@ -43,7 +44,7 @@ public class UncontrolledMovementSystem : JobComponentSystem
         var job = new UncontrolledMovementJob()
         {
             commandBuffer = commandBufferSystem.CreateCommandBuffer().ToConcurrent(),
-            deltaTime = Time.deltaTime,
+            deltaTime = Time.DeltaTime,
         }.Schedule(this, inputDeps);
 
         commandBufferSystem.AddJobHandleForProducer(job);
