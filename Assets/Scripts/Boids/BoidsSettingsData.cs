@@ -23,4 +23,6 @@ public struct BoidsSettings
     public float cohesionWeight;
     public float targetWeight;
     public float avoidanceWeight;
+    public float avoidStateRadius;
+    public float avoidStateWeight;
 }

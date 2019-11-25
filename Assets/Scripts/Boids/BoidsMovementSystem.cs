@@ -28,7 +28,7 @@ public class BoidsMovementSystem : JobComponentSystem
     [BurstCompile]
     private struct CalculateAccelerationsJob : IJobForEachWithEntity<BoidData, Translation, PhysicsVelocity>
     {
-        [ReadOnly] public float targetWeight;
+        [ReadOnly] public BoidsState boidsState;
         [ReadOnly] public float3 targetPosition;
         [ReadOnly] public BoidsSettings boidsSettings;
         public NativeArray<float3> accelerations;
@@ -36,7 +36,19 @@ public class BoidsMovementSystem : JobComponentSystem
         public void Execute(Entity entity, int index, ref BoidData boidData, ref Translation translation, ref PhysicsVelocity physicsVelocity)
         {
             float3 offsetToTarget = targetPosition - translation.Value;
-            float3 acceleration = SteerTowards(offsetToTarget, boidData, physicsVelocity) * targetWeight;
+            float3 acceleration = float3.zero;
+            if (boidsState == BoidsState.Follow) {
+                acceleration += SteerTowards(offsetToTarget, boidData, physicsVelocity) * boidsSettings.targetWeight;
+            }else if(boidsState == BoidsState.Avoid)
+            {
+                //if(math.distance(translation.Value,pos))
+                float distance = math.distance(translation.Value, targetPosition);
+                if (distance <= boidsSettings.avoidStateRadius)
+                {
+                    acceleration += SteerTowards(-offsetToTarget, boidData, physicsVelocity) * boidsSettings.avoidStateWeight;//math.lerp(boidsSettings.avoidanceMaxWeight, 0, math.length(offsetToTarget) / boidsSettings.avoidStateRadius);
+                }
+
+            }
 
             float3 collisionAvoidForce = SteerTowards(boidData.obstacleAvoidanceHeading, boidData, physicsVelocity);
             acceleration += collisionAvoidForce * boidsSettings.avoidanceWeight;
@@ -122,11 +134,14 @@ public class BoidsMovementSystem : JobComponentSystem
         }
 
         float3 targetPosition = new float3(0, 0, 0);
-        float targetWeight = 0;
-        if (PlayerInput.Singleton && PlayerInput.Singleton.IsPositionHit)
+        BoidsState boidsState = BoidsState.None;
+        if (PlayerInput.Singleton)
         {
-            targetPosition = PlayerInput.Singleton.MouseHitPosition;
-            targetWeight = BoidHelper.boidSettings.targetWeight;
+            if (PlayerInput.Singleton.State!= BoidsState.None)
+            {
+                targetPosition = PlayerInput.Singleton.MouseHitPosition;
+                boidsState = PlayerInput.Singleton.State;
+            }
         }
 
         NativeArray<float3> accelerationsArray = new NativeArray<float3>(entityCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
@@ -137,7 +152,7 @@ public class BoidsMovementSystem : JobComponentSystem
             accelerations = accelerationsArray,
             boidsSettings = BoidHelper.boidSettings,
             targetPosition = targetPosition,
-            targetWeight = targetWeight,
+            boidsState = boidsState,
         }.Schedule(movementQuery, inputDependencies);
 
         JobHandle moveControlledJob = new MovementJob()
