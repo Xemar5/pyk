@@ -92,6 +92,7 @@ GameObject:
   - component: {fileID: 6069222802475591084}
   - component: {fileID: 1382641091938890571}
   - component: {fileID: 4563587320049316765}
+  - component: {fileID: 8919532529416630638}
   m_Layer: 0
   m_Name: Mawlet - No Tail Animation
   m_TagString: Untagged
@@ -274,3 +275,17 @@ MonoBehaviour:
     z: -0
   SolverIterationCount: 4
   ThreadCountHint: 8
+--- !u!114 &8919532529416630638
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7481029849747634160}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62557fa7f0fefff4b93795c1717fe4b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  damage: 3
+  attackDelay: 2

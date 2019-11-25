@@ -17,18 +17,24 @@ using UnityEngine;
 public class BoidsUncontrolledMovementSystem : JobComponentSystem
 {
     private BeginInitializationEntityCommandBufferSystem commandBufferSystem;
+    private BoidsSettings boidsSettings;
 
-    private struct UncontrolledMovementJob : IJobForEachWithEntity<UncontrolledMovementComponent>
+    private struct UncontrolledMovementJob : IJobForEachWithEntity<UncontrolledMovementComponent, PhysicsVelocity>
     {
+        public BoidsSettings boidsSettings;
         public EntityCommandBuffer.Concurrent commandBuffer;
         public float deltaTime;
 
-        public void Execute(Entity entity, int index, ref UncontrolledMovementComponent uncontrolledMovement)
+        public void Execute(Entity entity, int index, ref UncontrolledMovementComponent uncontrolledMovement, ref PhysicsVelocity physicsVelocity)
         {
             uncontrolledMovement.duration -= deltaTime;
             if (uncontrolledMovement.duration <= 0)
             {
                 commandBuffer.RemoveComponent<UncontrolledMovementComponent>(index, entity);
+            }
+            else
+            {
+                physicsVelocity.Linear = uncontrolledMovement.direction * uncontrolledMovement.speed;
             }
         }
     }
@@ -37,6 +43,7 @@ public class BoidsUncontrolledMovementSystem : JobComponentSystem
 
     protected override void OnCreate()
     {
+        boidsSettings = Resources.Load<BoidsSettingsData>("BoidSettings").settings;
         commandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
     }
     protected override JobHandle OnUpdate(JobHandle inputDeps)
@@ -44,6 +51,7 @@ public class BoidsUncontrolledMovementSystem : JobComponentSystem
         var job = new UncontrolledMovementJob()
         {
             commandBuffer = commandBufferSystem.CreateCommandBuffer().ToConcurrent(),
+            boidsSettings = boidsSettings,
             deltaTime = Time.DeltaTime,
         }.Schedule(this, inputDeps);
 

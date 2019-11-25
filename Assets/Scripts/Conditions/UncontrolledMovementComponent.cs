@@ -8,5 +8,7 @@ public struct UncontrolledMovementComponent : IComponentData
 {
 
     public float duration;
-    
+    public float3 direction;
+    public float speed;
+
 }
