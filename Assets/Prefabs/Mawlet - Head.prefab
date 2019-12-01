@@ -93,8 +93,9 @@ GameObject:
   - component: {fileID: 1382641091938890571}
   - component: {fileID: 4563587320049316765}
   - component: {fileID: 8919532529416630638}
+  - component: {fileID: 5519368852147339421}
   m_Layer: 0
-  m_Name: Mawlet - No Tail Animation
+  m_Name: Mawlet - Head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -289,3 +290,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   damage: 3
   attackDelay: 2
+--- !u!114 &5519368852147339421
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7481029849747634160}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b22141bb8e021d46a2ff5888aa944c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

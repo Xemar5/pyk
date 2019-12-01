@@ -4,7 +4,6 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Physics;
-using Unity.Physics.Systems;
 using Unity.Transforms;
 
 //[UpdateAfter(typeof(BoidsMovementDataUpdateSystem))]
@@ -14,44 +13,69 @@ using Unity.Transforms;
 [UpdateAfter(typeof(BoidsMovementDataUpdateSystem))]
 public class BoidsMovementSystem : JobComponentSystem
 {
-    // This declares a new kind of job, which is a unit of work to do.
-    // The job is declared as an IJobForEach<Translation, Rotation>,
-    // meaning it will process all entities in the world that have both
-    // Translation and Rotation components. Change it to process the component
-    // types you want.
-    //
-    // The job is also tagged with the BurstCompile attribute, which means
-    // that the Burst compiler will optimize it for the best performance.
+
+    private EntityQuery followQuery;
+    private EntityQuery repelQuery;
+    private EntityQuery avoidQuery;
+    private EntityQuery flockQuery;
     private EntityQuery movementQuery;
 
 
+    //[BurstCompile]
+    //private struct AccelerationResetJob : IJobForEachWithEntity<BoidData>
+    //{
+    //    public void Execute(Entity entity, int index, ref BoidData boidData)
+    //    {
+    //        boidData.acceleration = float3.zero;
+    //    }
+    //}
+
     [BurstCompile]
-    private struct CalculateAccelerationsJob : IJobForEachWithEntity<BoidData, Translation, PhysicsVelocity>
+    private struct CalculateFollowAccelerationsJob : IJobForEachWithEntity<BoidData, Translation, SelectableComponent, PhysicsVelocity>
     {
-        [ReadOnly] public BoidsState boidsState;
-        [ReadOnly] public float3 targetPosition;
-        [ReadOnly] public BoidsSettings boidsSettings;
-        public NativeArray<float3> accelerations;
+        public BoidsSettings boidsSettings;
+        public NativeHashMap<Entity, float3>.ParallelWriter accelerations;
 
-        public void Execute(Entity entity, int index, ref BoidData boidData, ref Translation translation, ref PhysicsVelocity physicsVelocity)
+        public void Execute(Entity entity, int index, [ReadOnly] ref BoidData boidData, [ReadOnly] ref Translation translation, [ReadOnly] ref SelectableComponent selectable, [ReadOnly] ref PhysicsVelocity physicsVelocity)
         {
-            float3 offsetToTarget = targetPosition - translation.Value;
+            accelerations.TryAdd(entity, SteerTowards(selectable.selectorTranslation - translation.Value, boidData, physicsVelocity) * boidsSettings.targetWeight);
+        }
+    }
+
+    [BurstCompile]
+    private struct CalculateRepelAccelerationsJob : IJobForEachWithEntity<BoidData, Translation, SelectableComponent, PhysicsVelocity>
+    {
+        public BoidsSettings boidsSettings;
+        public NativeHashMap<Entity, float3>.ParallelWriter accelerations;
+
+        public void Execute(Entity entity, int index, [ReadOnly] ref BoidData boidData, [ReadOnly] ref Translation translation, [ReadOnly] ref SelectableComponent selectable, [ReadOnly] ref PhysicsVelocity physicsVelocity)
+        {
+            accelerations.TryAdd(entity, SteerTowards(translation.Value - selectable.selectorTranslation, boidData, physicsVelocity) * boidsSettings.avoidStateWeight);
+        }
+    }
+
+    [BurstCompile]
+    private struct CalculateAvoidAccelerationsJob : IJobForEachWithEntity<BoidData, Translation, PhysicsVelocity>
+    {
+        public BoidsSettings boidsSettings;
+        public NativeHashMap<Entity, float3>.ParallelWriter accelerations;
+
+        public void Execute(Entity entity, int index, [ReadOnly] ref BoidData boidData, [ReadOnly] ref Translation translation, [ReadOnly] ref PhysicsVelocity physicsVelocity)
+        {
+            accelerations.TryAdd(entity, SteerTowards(boidData.obstacleAvoidanceHeading, boidData, physicsVelocity) * boidsSettings.avoidanceWeight);
+        }
+
+
+    }
+    [BurstCompile]
+    private struct CalculateFlockAccelerationsJob : IJobForEachWithEntity<BoidData, Translation, PhysicsVelocity>
+    {
+        public BoidsSettings boidsSettings;
+        public NativeHashMap<Entity, float3>.ParallelWriter accelerations;
+
+        public void Execute(Entity entity, int index, [ReadOnly] ref BoidData boidData, [ReadOnly] ref Translation translation, [ReadOnly] ref PhysicsVelocity physicsVelocity)
+        {
             float3 acceleration = float3.zero;
-            if (boidsState == BoidsState.Follow) {
-                acceleration += SteerTowards(offsetToTarget, boidData, physicsVelocity) * boidsSettings.targetWeight;
-            }else if(boidsState == BoidsState.Avoid)
-            {
-                //if(math.distance(translation.Value,pos))
-                float distance = math.distance(translation.Value, targetPosition);
-                if (distance <= boidsSettings.avoidStateRadius)
-                {
-                    acceleration += SteerTowards(-offsetToTarget, boidData, physicsVelocity) * boidsSettings.avoidStateWeight;//math.lerp(boidsSettings.avoidanceMaxWeight, 0, math.length(offsetToTarget) / boidsSettings.avoidStateRadius);
-                }
-
-            }
-
-            float3 collisionAvoidForce = SteerTowards(boidData.obstacleAvoidanceHeading, boidData, physicsVelocity);
-            acceleration += collisionAvoidForce * boidsSettings.avoidanceWeight;
 
             if (boidData.numFlockmates != 0)
             {
@@ -64,22 +88,10 @@ public class BoidsMovementSystem : JobComponentSystem
                 acceleration += cohesionForce * boidsSettings.cohesionWeight;
                 acceleration += separationForce * boidsSettings.separationWeight;
             }
-            accelerations[index] = acceleration;
+
+            accelerations.TryAdd(entity, acceleration);
         }
 
-        private float3 SteerTowards(float3 vector, BoidData boidData, PhysicsVelocity physicsVelocity)
-        {
-            float3 maxVelocity = math.normalizesafe(vector) * boidData.maxSpeed;
-            float3 targetVelocity = maxVelocity - physicsVelocity.Linear;
-            if (math.lengthsq(targetVelocity) > math.lengthsq(boidData.maxSteerForce))
-            {
-                return math.normalizesafe(targetVelocity) * boidData.maxSteerForce;
-            }
-            else
-            {
-                return targetVelocity;
-            }
-        }
 
     }
 
@@ -87,12 +99,20 @@ public class BoidsMovementSystem : JobComponentSystem
     [BurstCompile]
     private struct MovementJob : IJobForEachWithEntity<BoidData, PhysicsVelocity>
     {
-        [ReadOnly] public BoidsSettings boidsSettings;
-        [DeallocateOnJobCompletion, ReadOnly] public NativeArray<float3> accelerations;
+        public BoidsSettings boidsSettings;
+        [ReadOnly] public NativeHashMap<Entity, float3> followAccelerations;
+        [ReadOnly] public NativeHashMap<Entity, float3> repelAccelerations;
+        [ReadOnly] public NativeHashMap<Entity, float3> avoidAccelerations;
+        [ReadOnly] public NativeHashMap<Entity, float3> flockAccelerations;
 
-        public void Execute(Entity entity, int index, ref BoidData boidData, ref PhysicsVelocity physicsVelocity)
+        public void Execute(Entity entity, int index, [ReadOnly] ref BoidData boidData, ref PhysicsVelocity physicsVelocity)
         {
-            float3 velocity = physicsVelocity.Linear + accelerations[index];
+            followAccelerations.TryGetValue(entity, out float3 followAcceleration);
+            repelAccelerations.TryGetValue(entity, out float3 repelAcceleration);
+            avoidAccelerations.TryGetValue(entity, out float3 avoidAcceleration);
+            flockAccelerations.TryGetValue(entity, out float3 flockAcceleration);
+
+            float3 velocity = physicsVelocity.Linear + followAcceleration + repelAcceleration + avoidAcceleration + flockAcceleration;
             float3 dir = math.normalizesafe(velocity);
             float speed = math.length(velocity);
             speed = math.clamp(speed, boidsSettings.minSpeed, boidsSettings.maxSpeed);
@@ -106,14 +126,79 @@ public class BoidsMovementSystem : JobComponentSystem
 
 
 
+    private static float3 SteerTowards(float3 vector, BoidData boidData, PhysicsVelocity physicsVelocity)
+    {
+        float3 maxVelocity = math.normalizesafe(vector) * boidData.maxSpeed;
+        float3 targetVelocity = maxVelocity - physicsVelocity.Linear;
+        if (math.lengthsq(targetVelocity) > math.lengthsq(boidData.maxSteerForce))
+        {
+            return math.normalizesafe(targetVelocity) * boidData.maxSteerForce;
+        }
+        else
+        {
+            return targetVelocity;
+        }
+    }
+
+
+
     protected override void OnCreate()
     {
-        movementQuery = GetEntityQuery(new EntityQueryDesc()
+        followQuery = GetEntityQuery(new EntityQueryDesc()
         {
             All = new[]
             {
                 ComponentType.ReadOnly<BoidData>(),
-                ComponentType.ReadOnly<Rotation>(),
+                ComponentType.ReadOnly<Translation>(),
+                ComponentType.ReadOnly<SelectableComponent>(),
+                ComponentType.ReadOnly<PhysicsVelocity>(),
+                typeof(SelectableGroupComponent),
+            },
+            None = new[]
+            {
+                ComponentType.ReadOnly<UncontrolledMovementComponent>()
+            }
+        });
+        followQuery.AddSharedComponentFilter(new SelectableGroupComponent()
+        {
+            id = SelectorID.Attract,
+        });
+
+        repelQuery = GetEntityQuery(new EntityQueryDesc()
+        {
+            All = new[]
+            {
+                ComponentType.ReadOnly<BoidData>(),
+                ComponentType.ReadOnly<Translation>(),
+                ComponentType.ReadOnly<PhysicsVelocity>(),
+                ComponentType.ReadOnly<SelectableComponent>(),
+                typeof(SelectableGroupComponent),
+            },
+            None = new[]
+            {
+                ComponentType.ReadOnly<UncontrolledMovementComponent>()
+            }
+        });
+        repelQuery.AddSharedComponentFilter(new SelectableGroupComponent()
+        {
+            id = SelectorID.Repel,
+        });
+
+        avoidQuery = GetEntityQuery(new EntityQueryDesc()
+        {
+            All = new[]
+            {
+                ComponentType.ReadOnly<BoidData>(),
+                ComponentType.ReadOnly<Translation>(),
+                ComponentType.ReadOnly<PhysicsVelocity>(),
+            },
+        });
+
+        flockQuery = GetEntityQuery(new EntityQueryDesc()
+        {
+            All = new[]
+            {
+                ComponentType.ReadOnly<BoidData>(),
                 ComponentType.ReadOnly<Translation>(),
                 ComponentType.ReadOnly<PhysicsVelocity>(),
             },
@@ -122,44 +207,84 @@ public class BoidsMovementSystem : JobComponentSystem
                 ComponentType.ReadOnly<UncontrolledMovementComponent>()
             }
         });
+
+        movementQuery = GetEntityQuery(new EntityQueryDesc()
+        {
+            All = new[]
+            {
+                ComponentType.ReadOnly<BoidData>(),
+                ComponentType.ReadWrite<PhysicsVelocity>(),
+            },
+        });
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDependencies)
     {
-        int entityCount = movementQuery.CalculateEntityCount();
-        if (entityCount == 0)
-        {
-            // No boids found
-            return inputDependencies;
-        }
+        JobHandle combineAccelerationHandle = inputDependencies;
 
-        float3 targetPosition = new float3(0, 0, 0);
-        BoidsState boidsState = BoidsState.None;
-        if (PlayerInput.Singleton)
+        int followCount = followQuery.CalculateEntityCount();
+        int repelCount = repelQuery.CalculateEntityCount();
+        int avoidCount = avoidQuery.CalculateEntityCount();
+        int flockCount = flockQuery.CalculateEntityCount();
+        NativeHashMap<Entity, float3> followAccelerations = new NativeHashMap<Entity, float3>(followCount, Allocator.TempJob);
+        NativeHashMap<Entity, float3> repelAccelerations = new NativeHashMap<Entity, float3>(repelCount, Allocator.TempJob);
+        NativeHashMap<Entity, float3> avoidAccelerations = new NativeHashMap<Entity, float3>(avoidCount, Allocator.TempJob);
+        NativeHashMap<Entity, float3> flockAccelerations = new NativeHashMap<Entity, float3>(flockCount, Allocator.TempJob);
+
+        if (followCount > 0)
         {
-            if (PlayerInput.Singleton.State!= BoidsState.None)
+            JobHandle handle = new CalculateFollowAccelerationsJob()
             {
-                targetPosition = PlayerInput.Singleton.MouseHitPosition;
-                boidsState = PlayerInput.Singleton.State;
-            }
+                boidsSettings = BoidHelper.boidSettings,
+                accelerations = followAccelerations.AsParallelWriter(),
+            }.Schedule(followQuery, inputDependencies);
+            combineAccelerationHandle = JobHandle.CombineDependencies(combineAccelerationHandle, handle);
         }
 
-        NativeArray<float3> accelerationsArray = new NativeArray<float3>(entityCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-
-
-        JobHandle calculateAccelerationHandle = new CalculateAccelerationsJob()
+        if (repelCount > 0)
         {
-            accelerations = accelerationsArray,
-            boidsSettings = BoidHelper.boidSettings,
-            targetPosition = targetPosition,
-            boidsState = boidsState,
-        }.Schedule(movementQuery, inputDependencies);
+            JobHandle handle = new CalculateRepelAccelerationsJob()
+            {
+                boidsSettings = BoidHelper.boidSettings,
+                accelerations = repelAccelerations.AsParallelWriter(),
+            }.Schedule(repelQuery, inputDependencies);
+            combineAccelerationHandle = JobHandle.CombineDependencies(combineAccelerationHandle, handle);
+        }
+
+        if (avoidCount > 0)
+        {
+            JobHandle handle = new CalculateAvoidAccelerationsJob()
+            {
+                boidsSettings = BoidHelper.boidSettings,
+                accelerations = avoidAccelerations.AsParallelWriter(),
+            }.Schedule(avoidQuery, inputDependencies);
+            combineAccelerationHandle = JobHandle.CombineDependencies(combineAccelerationHandle, handle);
+        }
+
+        if (flockCount > 0)
+        {
+            JobHandle handle = new CalculateFlockAccelerationsJob()
+            {
+                boidsSettings = BoidHelper.boidSettings,
+                accelerations = flockAccelerations.AsParallelWriter(),
+            }.Schedule(flockQuery, inputDependencies);
+            combineAccelerationHandle = JobHandle.CombineDependencies(combineAccelerationHandle, handle);
+        }
+
 
         JobHandle moveControlledJob = new MovementJob()
         {
-            accelerations = accelerationsArray,
+            followAccelerations = followAccelerations,
+            repelAccelerations = repelAccelerations,
+            avoidAccelerations = avoidAccelerations,
+            flockAccelerations = flockAccelerations,
             boidsSettings = BoidHelper.boidSettings,
-        }.Schedule(movementQuery, calculateAccelerationHandle);
+        }.Schedule(movementQuery, combineAccelerationHandle);
+
+        followAccelerations.Dispose(moveControlledJob);
+        repelAccelerations.Dispose(moveControlledJob);
+        avoidAccelerations.Dispose(moveControlledJob);
+        flockAccelerations.Dispose(moveControlledJob);
 
         return moveControlledJob;
     }
