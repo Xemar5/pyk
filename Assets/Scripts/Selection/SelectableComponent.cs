@@ -9,6 +9,6 @@ using UnityEngine;
 
 public struct SelectableComponent : IComponentData
 {
-    public SelectorID selectorId;
+    public SelectorMode selectorMode;
     public float3 selectorTranslation;
 }

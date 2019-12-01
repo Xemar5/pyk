@@ -9,7 +9,7 @@ public class PlayerInput : MonoBehaviour
 
     public static PlayerInput Singleton;
     public Vector3 MouseHitPosition;
-    public BoidsState State;
+    //public BoidsState State;
 
     Camera cam;
     private void Awake()
@@ -28,18 +28,7 @@ public class PlayerInput : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetMouseButton(0))
-        {
-            State = BoidsState.Follow;
-        }else if (Input.GetMouseButton(1))
-        {
-            State = BoidsState.Avoid;
-        }
-        else
-        {
-            State = BoidsState.None;
-        }
-        if (State == BoidsState.Follow || State == BoidsState.Avoid)
+        if (Input.GetMouseButton(0) || Input.GetMouseButton(1))
         {
             Vector2 screenPos = Input.mousePosition;
             Plane plane = new Plane(Vector3.up, Vector3.zero);
@@ -48,10 +37,6 @@ public class PlayerInput : MonoBehaviour
             if (plane.Raycast(ray, out float enter) == true)
             {
                 MouseHitPosition = ray.GetPoint(enter);
-            }
-            else
-            {
-                State = BoidsState.None;
             }
         }
     }

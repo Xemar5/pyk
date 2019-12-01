@@ -8,6 +8,6 @@ using Unity.Entities;
 [GenerateAuthoringComponent]
 public struct SelectorComponent : IComponentData
 {
-    public SelectorID id;
+    public SelectorMode mode;
     public float range;
 }

@@ -16,7 +16,7 @@ public class SelectableComponentAuthoring : MonoBehaviour, IConvertGameObjectToE
         dstManager.AddComponent<SelectableComponent>(entity);
         dstManager.AddSharedComponentData(entity, new SelectableGroupComponent()
         {
-            id = SelectorID.Undefined
+            mode = SelectorMode.Undefined
         });
     }
 }

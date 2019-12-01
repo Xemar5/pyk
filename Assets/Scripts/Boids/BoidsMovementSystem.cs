@@ -5,9 +5,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
-
-//[UpdateAfter(typeof(BoidsMovementDataUpdateSystem))]
-//[UpdateBefore(typeof(EndFramePhysicsSystem))]
+using UnityEngine;
 
 [UpdateInGroup(typeof(BoidsMovementSystemGroup))]
 [UpdateAfter(typeof(BoidsMovementDataUpdateSystem))]
@@ -21,14 +19,6 @@ public class BoidsMovementSystem : JobComponentSystem
     private EntityQuery movementQuery;
 
 
-    //[BurstCompile]
-    //private struct AccelerationResetJob : IJobForEachWithEntity<BoidData>
-    //{
-    //    public void Execute(Entity entity, int index, ref BoidData boidData)
-    //    {
-    //        boidData.acceleration = float3.zero;
-    //    }
-    //}
 
     [BurstCompile]
     private struct CalculateFollowAccelerationsJob : IJobForEachWithEntity<BoidData, Translation, SelectableComponent, PhysicsVelocity>
@@ -146,22 +136,22 @@ public class BoidsMovementSystem : JobComponentSystem
     {
         followQuery = GetEntityQuery(new EntityQueryDesc()
         {
-            All = new[]
+            All = new ComponentType[]
             {
                 ComponentType.ReadOnly<BoidData>(),
                 ComponentType.ReadOnly<Translation>(),
                 ComponentType.ReadOnly<SelectableComponent>(),
                 ComponentType.ReadOnly<PhysicsVelocity>(),
-                typeof(SelectableGroupComponent),
+                ComponentType.ReadOnly<SelectableGroupComponent>(),
             },
-            None = new[]
+            None = new ComponentType[]
             {
-                ComponentType.ReadOnly<UncontrolledMovementComponent>()
+                typeof(UncontrolledMovementComponent)
             }
         });
-        followQuery.AddSharedComponentFilter(new SelectableGroupComponent()
+        followQuery.SetSharedComponentFilter(new SelectableGroupComponent()
         {
-            id = SelectorID.Attract,
+            mode = SelectorMode.Attract,
         });
 
         repelQuery = GetEntityQuery(new EntityQueryDesc()
@@ -172,16 +162,16 @@ public class BoidsMovementSystem : JobComponentSystem
                 ComponentType.ReadOnly<Translation>(),
                 ComponentType.ReadOnly<PhysicsVelocity>(),
                 ComponentType.ReadOnly<SelectableComponent>(),
-                typeof(SelectableGroupComponent),
+                ComponentType.ReadOnly<SelectableGroupComponent>(),
             },
-            None = new[]
+            None = new ComponentType[]
             {
-                ComponentType.ReadOnly<UncontrolledMovementComponent>()
+                typeof(UncontrolledMovementComponent)
             }
         });
         repelQuery.AddSharedComponentFilter(new SelectableGroupComponent()
         {
-            id = SelectorID.Repel,
+            mode = SelectorMode.Repel,
         });
 
         avoidQuery = GetEntityQuery(new EntityQueryDesc()
@@ -202,9 +192,9 @@ public class BoidsMovementSystem : JobComponentSystem
                 ComponentType.ReadOnly<Translation>(),
                 ComponentType.ReadOnly<PhysicsVelocity>(),
             },
-            None = new[]
+            None = new ComponentType[]
             {
-                ComponentType.ReadOnly<UncontrolledMovementComponent>()
+                typeof(UncontrolledMovementComponent)
             }
         });
 

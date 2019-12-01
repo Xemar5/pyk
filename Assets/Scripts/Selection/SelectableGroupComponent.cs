@@ -5,8 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Unity.Entities;
 
-[GenerateAuthoringComponent]
 public struct SelectableGroupComponent : ISharedComponentData
 {
-    public SelectorID id;
+    public SelectorMode mode;
 }

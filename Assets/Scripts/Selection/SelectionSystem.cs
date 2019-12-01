@@ -17,7 +17,7 @@ public class SelectionSystem : JobComponentSystem
     {
         public float3 translation;
         public float rangeSquared;
-        public SelectorID id;
+        public SelectorMode id;
     }
 
 
@@ -29,7 +29,7 @@ public class SelectionSystem : JobComponentSystem
         public void Execute(Entity entity, int index, [ReadOnly] ref SelectorComponent selector, [ReadOnly] ref Translation translation)
         {
 #if UNITY_EDITOR
-            if (selector.id == SelectorID.Undefined)
+            if (selector.mode == SelectorMode.Undefined)
             {
                 throw new Exception($"Selector has ID set to Undefined");
             }
@@ -38,20 +38,21 @@ public class SelectionSystem : JobComponentSystem
             {
                 translation = translation.Value,
                 rangeSquared = selector.range * selector.range,
-                id = selector.id,
+                id = selector.mode,
             };
         }
 
     }
 
 
-    [BurstCompile]
-    private struct UpdateSelectablesJob : IJobForEach<SelectableComponent, Translation>
+    //[BurstCompile]
+    private struct UpdateSelectablesJob : IJobForEachWithEntity<SelectableComponent, Translation>
     {
+        public EntityCommandBuffer.Concurrent commandBuffer;
         [ReadOnly] public int selectorCount;
         [ReadOnly] public NativeArray<SelectorData> selectorDatas;
 
-        public void Execute(ref SelectableComponent selectable, [ReadOnly] ref Translation translation)
+        public void Execute(Entity entity, int index, ref SelectableComponent selectable, [ReadOnly] ref Translation translation)
         {
             float closestSelectorDistanceSquared = float.PositiveInfinity;
             int closestSelectorIndex = -1;
@@ -68,29 +69,43 @@ public class SelectionSystem : JobComponentSystem
                 }
             }
 
+            SelectorMode previousMode = selectable.selectorMode;
             if (closestSelectorIndex == -1)
             {
-                selectable.selectorId = SelectorID.Undefined;
+                selectable.selectorMode = SelectorMode.Undefined;
             }
             else
             {
-                selectable.selectorId = selectorDatas[closestSelectorIndex].id;
+                selectable.selectorMode = selectorDatas[closestSelectorIndex].id;
                 selectable.selectorTranslation = selectorDatas[closestSelectorIndex].translation;
+            }
+            if (previousMode != selectable.selectorMode)
+            {
+                commandBuffer.SetSharedComponent(index, entity, new SelectableGroupComponent()
+                {
+                    mode = selectable.selectorMode,
+                });
             }
         }
     }
 
-    private struct UpdateSelectableGroupsJob : IJobForEachWithEntity<SelectableComponent>
+    private struct ClearSelectionJob : IJobForEachWithEntity<SelectableComponent>
     {
         public EntityCommandBuffer.Concurrent commandBuffer;
-        public void Execute(Entity entity, int index, ref SelectableComponent selectable)
+
+        public void Execute(Entity entity, int index, ref SelectableComponent c0)
         {
-            commandBuffer.SetSharedComponent(index, entity, new SelectableGroupComponent()
+            if (c0.selectorMode != SelectorMode.Undefined)
             {
-                id = selectable.selectorId,
-            });
+                c0.selectorMode = SelectorMode.Undefined;
+                commandBuffer.SetSharedComponent(index, entity, new SelectableGroupComponent
+                {
+                    mode = SelectorMode.Undefined,
+                });
+            }
         }
     }
+
 
     protected override void OnCreate()
     {
@@ -112,11 +127,13 @@ public class SelectionSystem : JobComponentSystem
         int selectorCount = selectorQuery.CalculateEntityCount();
         if (selectorCount == 0)
         {
-            return inputDeps;
+            return new ClearSelectionJob()
+            {
+                commandBuffer = commandBufferSystem.CreateCommandBuffer().ToConcurrent(),
+            }.Schedule(this, inputDeps);
         }
 
         NativeArray<SelectorData> selectorDatas = new NativeArray<SelectorData>(selectorCount, Allocator.TempJob);
-        NativeArray<JobHandle> jobHandles = new NativeArray<JobHandle>(selectorCount, Allocator.TempJob);
 
         JobHandle gatherSelectorDatasHandle = new SelectorTranslationsJob()
         {
@@ -128,19 +145,10 @@ public class SelectionSystem : JobComponentSystem
         {
             selectorDatas = selectorDatas,
             selectorCount = selectorCount,
+            commandBuffer = commandBufferSystem.CreateCommandBuffer().ToConcurrent(),
         }.Schedule(this, gatherSelectorDatasHandle);
 
-        for (int i = 0; i < selectorCount; i++)
-        {
-            jobHandles[i] = new UpdateSelectableGroupsJob()
-            {
-                commandBuffer = commandBufferSystem.CreateCommandBuffer().ToConcurrent(),
-            }.Schedule(this, gatherUnselectedHandle);
-        }
-
-        JobHandle combineHandle = JobHandle.CombineDependencies(jobHandles);
-        JobHandle selectorDatasDispose = selectorDatas.Dispose(combineHandle);
-        JobHandle jobHandlesDispose = jobHandles.Dispose(combineHandle);
-        return JobHandle.CombineDependencies(selectorDatasDispose, jobHandlesDispose);
+        selectorDatas.Dispose(gatherUnselectedHandle);
+        return gatherUnselectedHandle;
     }
 }
